@@ -1,0 +1,237 @@
+:host {
+  --sidebar-width: 250px;
+  --sidebar-width-collapsed: 74px;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  padding: 1rem;
+  gap: 1rem;
+  background: var(--p-surface-100, #f1f5f9);
+}
+
+/* ---- Sidebar: floating white card (Ultima static menu) ---- */
+.layout-sidebar {
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--p-surface-0, #ffffff);
+  border: 1px solid var(--p-surface-200, #e2e8f0);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  padding: 0.75rem;
+  overflow: hidden;
+  transition: width 0.25s ease, flex-basis 0.25s ease;
+}
+
+.collapsed .layout-sidebar {
+  width: var(--sidebar-width-collapsed);
+  flex-basis: var(--sidebar-width-collapsed);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--p-surface-200, #e2e8f0);
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.logo-mark {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--p-primary-color, #10b981);
+  color: var(--p-primary-contrast-color, #ffffff);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.logo-text {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--p-text-color, #1f2937);
+  white-space: nowrap;
+}
+
+.collapse-btn {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--p-text-muted-color, #64748b);
+  cursor: pointer;
+}
+
+.collapse-btn:hover {
+  background: var(--p-content-hover-background, #f1f5f9);
+}
+
+/* ---- Menu ---- */
+.layout-menu {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 0.5rem;
+}
+
+.menu-section-label {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color, #94a3b8);
+  white-space: nowrap;
+}
+
+.menu-list,
+.submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-item {
+  margin-bottom: 0.15rem;
+}
+
+.menu-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  color: var(--p-text-color, #334155);
+  font-size: 0.92rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.menu-link:hover {
+  background: var(--p-content-hover-background, #f1f5f9);
+}
+
+.menu-icon {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  font-size: 1.05rem;
+  text-align: center;
+  color: var(--p-text-muted-color, #64748b);
+}
+
+.menu-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-toggler {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color, #94a3b8);
+  transition: transform 0.2s ease;
+}
+
+.menu-item.expanded .menu-toggler {
+  transform: rotate(180deg);
+}
+
+/* ---- Submenu ---- */
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+
+.submenu.open {
+  max-height: 40rem;
+}
+
+.submenu-link {
+  padding: 0.6rem 0.75rem 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color, #475569);
+}
+
+.menu-dot {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  font-size: 0.35rem;
+  text-align: center;
+  color: var(--p-surface-400, #cbd5e1);
+}
+
+.submenu-link.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.submenu-link.disabled:hover {
+  background: transparent;
+}
+
+/* Active route highlight — soft primary tint + primary text (Ultima) */
+.submenu-link.active-route {
+  background: color-mix(in srgb, var(--p-primary-color, #10b981) 12%, transparent);
+  color: var(--p-primary-color, #10b981);
+  font-weight: 600;
+}
+
+.submenu-link.active-route .menu-dot {
+  color: var(--p-primary-color, #10b981);
+}
+
+/* ---- Collapsed (icon-only) mode ---- */
+.collapsed .menu-section-label,
+.collapsed .menu-text,
+.collapsed .menu-toggler,
+.collapsed .logo-text,
+.collapsed .submenu {
+  display: none;
+}
+
+.collapsed .menu-link {
+  justify-content: center;
+}
+
+.collapsed .sidebar-header {
+  justify-content: center;
+}
+
+.collapsed .collapse-btn {
+  display: none;
+}
+
+/* ---- Content ---- */
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}

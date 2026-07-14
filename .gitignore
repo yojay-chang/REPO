@@ -1,0 +1,32 @@
+# ---- .NET ----
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+project.lock.json
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+
+# ---- Node / Angular ----
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-error.log*
+
+# ---- Test / coverage ----
+[Tt]est[Rr]esults/
+coverage/
+*.trx
+
+# ---- IDE / OS ----
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Env / secrets ----
+*.local.json
+appsettings.*.local.json
