@@ -1,0 +1,33 @@
+<div class="inline-form" [formGroup]="form">
+  <div class="inline-field">
+    <label>PromoCode:</label>
+    <p-autocomplete
+      formControlName="promoCode"
+      [suggestions]="suggestions()"
+      (completeMethod)="complete($event)"
+      field="promoCode"
+      [dropdown]="true"
+      appendTo="body"
+      placeholder="輸入或選擇 PromoCode"
+    />
+  </div>
+
+  <div class="inline-field">
+    <label>Topic:</label>
+    <input type="text" pInputText formControlName="topic" maxlength="100" />
+  </div>
+
+  <div class="inline-field">
+    <label>Description:</label>
+    <input type="text" pInputText formControlName="description" maxlength="300" />
+  </div>
+
+  @if (errorMessage()) {
+    <small class="error">{{ errorMessage() }}</small>
+  }
+
+  <div class="inline-actions">
+    <a class="link-action" (click)="onSubmit()">Save</a>
+    <a class="link-action" (click)="onCancel()">Cancel</a>
+  </div>
+</div>

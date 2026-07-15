@@ -1,5 +1,14 @@
+using System.Text;
 using CMS.API.Data;
 using CMS.API.Repositories;
+using Dapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+
+// Map SQL Server `date` columns to DateOnly (Course.ScheduleOn/ScheduleOff). Must run before any query.
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +44,49 @@ builder.Services.AddCors(options =>
 // Data + repositories
 builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IAppRoleRepository, AppRoleRepository>();
+builder.Services.AddScoped<IAppUserRepository, AppUserRepository>();
+builder.Services.AddScoped<IPublishStatusRepository, PublishStatusRepository>();
+builder.Services.AddScoped<IPartnerRepository, PartnerRepository>();
+builder.Services.AddScoped<ICourseGroupRepository, CourseGroupRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IFeaturedPromoItemRepository, FeaturedPromoItemRepository>();
 builder.Services.AddScoped<ILookupRepository, LookupRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+
+// JWT bearer authentication. The signing key is resolved at validation time from SysConfig
+// ('appConfig'.symmetricSecurityKey) via IAuthRepository — the same key the AuthController signs with.
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+
+builder.Services
+    .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IServiceScopeFactory>((options, scopeFactory) =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            // Resolve the symmetric signing key per validation from the DB-backed config.
+            IssuerSigningKeyResolver = (_, _, _, _) =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var authRepository = scope.ServiceProvider.GetRequiredService<IAuthRepository>();
+                var signingKey = authRepository.GetSigningKeyAsync().GetAwaiter().GetResult();
+                return [new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey))];
+            },
+        };
+    });
+
+// Require an authenticated user on every endpoint by default; AuthController opts out with [AllowAnonymous].
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 var app = builder.Build();
 
@@ -46,6 +97,7 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseCors(CorsPolicy);
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

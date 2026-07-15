@@ -1,0 +1,63 @@
+<p-toast />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>檢視使用者</h1>
+    @if (user()) {
+      <span class="subtitle">{{ user()!.userId }}</span>
+    }
+  </div>
+  <div class="page-actions">
+    <p-button label="返回" icon="pi pi-arrow-left" severity="secondary" (onClick)="back()" />
+    @if (user()) {
+      <p-button label="編輯" icon="pi pi-pencil" severity="info" (onClick)="edit()" />
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="page-card">載入中…</div>
+} @else if (user(); as u) {
+  <div class="page-card">
+    <h2 class="section-title">使用者資料</h2>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="label">主代碼</span>
+        <span class="value">{{ u.pkid }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">使用者代碼</span>
+        <span class="value">{{ u.userId }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">使用者名稱</span>
+        <span class="value">{{ u.userName }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">啟用</span>
+        <span class="value">
+          <p-tag [value]="u.isActive ? '是' : '否'" [severity]="u.isActive ? 'success' : 'secondary'" />
+        </span>
+      </div>
+      <div class="detail-field">
+        <span class="label">密碼更新時間</span>
+        <span class="value">
+          {{ u.passwordUpdatedTime ? (u.passwordUpdatedTime + 'Z' | date: 'yyyy-MM-dd HH:mm') : '—' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <h2 class="section-title">角色（{{ roleLabels().length }}）</h2>
+    @if (roleLabels().length) {
+      <div class="chips">
+        @for (label of roleLabels(); track label) {
+          <p-tag [value]="label" severity="info" />
+        }
+      </div>
+    } @else {
+      <span class="empty">尚未指派角色</span>
+    }
+  </div>
+}

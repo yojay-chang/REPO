@@ -1,0 +1,81 @@
+<p-toast />
+<p-confirmDialog />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>上稿作業 FeaturedPromoItem</h1>
+    <span class="subtitle">首頁精選促銷週排程</span>
+  </div>
+</div>
+
+<div class="page-card">
+  <!-- TrainingCenter tabs -->
+  <div class="tc-tabs">
+    @for (tc of trainingCenters(); track tc.pkid) {
+      <button
+        type="button"
+        class="tc-tab"
+        [class.active]="tc.pkid === activeTrainingCenterPkid()"
+        (click)="selectTrainingCenter(tc.pkid)"
+      >
+        {{ tc.name }}
+      </button>
+    }
+  </div>
+
+  <!-- Week navigator -->
+  <div class="week-nav">
+    <button type="button" class="week-btn" (click)="prevWeek()">&lt;&lt;--</button>
+    <span class="week-label">{{ weekRangeLabel() }}</span>
+    <button type="button" class="week-btn" (click)="nextWeek()">--&gt;&gt;</button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">載入中…</div>
+  } @else {
+    @for (day of days(); track day.iso) {
+      <div class="day-group">
+        <div class="day-header">{{ day.label }}</div>
+
+        @for (slot of slots; track slot) {
+          <div class="slot-row">
+            <div class="slot-index">{{ slot }}</div>
+
+            @if (isEditing(day.iso, slot)) {
+              <app-featured-promo-item-form
+                class="slot-form"
+                [promotions]="promotions()"
+                [value]="editing()!.value"
+                (save)="onSave($event)"
+                (cancel)="cancelEdit()"
+              />
+            } @else {
+              @let item = itemFor(day.iso, slot);
+
+              @if (item) {
+                <div class="slot-actions">
+                  <a class="link-action" title="下移版位" (click)="moveSlotDown(item)">+</a>
+                  <a class="link-action" title="上移版位" (click)="moveSlotUp(item)">--</a>
+                  <a class="link-action" (click)="startEdit(day.iso, slot, item)">Edit</a>
+                  <a class="link-action" (click)="copy(item)">Copy</a>
+                  <a class="link-action danger" (click)="confirmDelete(item)">Delete</a>
+                </div>
+                <div class="slot-cell promo-code">{{ item.promoCode }}</div>
+                <div class="slot-cell topic">{{ item.topic }}</div>
+                <div class="slot-cell description">{{ item.description }}</div>
+              } @else {
+                <div class="slot-actions">
+                  <a class="link-action" (click)="startEdit(day.iso, slot)">Edit</a>
+                  <a class="link-action" [class.disabled]="!clipboard()" (click)="startPaste(day.iso, slot)">Paste</a>
+                </div>
+                <div class="slot-cell empty"></div>
+                <div class="slot-cell empty"></div>
+                <div class="slot-cell empty"></div>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

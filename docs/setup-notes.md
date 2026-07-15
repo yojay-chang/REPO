@@ -1,0 +1,106 @@
+# Setup notes
+
+Setup, commands, and one-time procedures for the CMS repo. Enduring conventions live in
+[`CLAUDE.md`](../CLAUDE.md); see also `README.md` and `spec/code-gen.convention.md`.
+
+## Commands
+
+Backend (from `src/`):
+```bash
+dotnet build CMS.slnx            # build solution
+dotnet test                      # run xUnit tests (no SQL Server needed)
+cd CMS.API && dotnet run         # http://localhost:5000, Swagger at /swagger
+```
+
+Frontend (from `src/CMS.NG`):
+```bash
+npm start                                          # ng serve → http://localhost:4200
+ng test --watch=false --browsers=ChromeHeadless    # single-run Karma + Jasmine
+ng build --configuration development                # dev build
+```
+
+## Backend
+
+- CORS allows any localhost origin.
+
+## Backend tests
+
+- `WebApplicationFactory<Program>` + in-memory **fake repositories** (`Fakes/`) swapped in via
+  `ConfigureServices` → `RemoveAll` + `AddSingleton`. **No live database is required.**
+- Cover list, filter, view, add (incl. 409 duplicate / 400 validation), and edit per feature.
+- `Program.cs` ends with `public partial class Program { }` so tests can use
+  `WebApplicationFactory<Program>`.
+
+## Frontend tests
+
+- Default Karma + Jasmine setup is retained. Component specs use `provideNoopAnimations`,
+  `provideRouter`, and a jasmine-spy service; the service spec uses `HttpTestingController`.
+
+## Adding a new entity
+
+Mirror the AppRole feature as the template.
+
+1. Read its `database/*.sql` and note PK type, FKs, and n-n junction tables.
+2. Backend: model trio → repository (+ interface, register in `Program.cs`) → controller;
+   add lookup endpoints for any FK targets; add xUnit tests with a fake repo.
+3. Frontend: `core/models` + `core/services` → list/detail/form components → route in
+   `app.routes.ts` → sidebar entry; add component + service specs.
+
+## Change log
+
+Newest first. Record notable convention or structural changes here.
+
+- **2026-07-15** — Moved the full **Auth (JWT)** section out of `CLAUDE.md` into
+  [auth.md](auth.md); `CLAUDE.md` now keeps a short auth summary + a pointer in the reference
+  index. Reduces always-loaded context.
+- **2026-07-15** — Added **Reset Password to Default** (Admin-only) on the AppUser edit form. Backend
+  `POST /api/Auth/reset-password` (body `ResetPasswordRequest { UserId }` — target only): since the
+  class-level `[AllowAnonymous]` on `AuthController` bypasses a declarative `[Authorize]` on the action,
+  the action enforces auth + role **explicitly by the JWT role claim** — anonymous → 401, non-Admin → 403
+  (`Forbid()`), Admin → reset. `IAuthRepository.ResetPasswordToDefaultAsync` reads
+  `SysConfig['appConfig'].defaultPassword` at runtime, sets `PasswordHash = SHA256(default)` + stamps
+  `PasswordUpdatedTime` (404 if the user is missing); no password/hash ever crosses the wire. Replaces the
+  earlier unprotected `POST /api/app-users/{id}/reset-password` (endpoint + `IAppUserRepository.ResetPasswordAsync`
+  removed). Frontend: `AppUserService.resetPassword` now POSTs `{ userId }` to `/Auth/reset-password`; the
+  edit form (`app-user-form`) shows a confirm-guarded **重設密碼** button only in edit mode when
+  `auth.isAdmin()` (moved off the detail page). Tests: `ResetPasswordEndpointTests` (401/403/200, hash =
+  SHA256(default), no leak), plus service/form/detail Karma specs.
+- **2026-07-15** — Added **Change Password** to My Profile. Backend `POST /api/Auth/change-password`
+  (`[Authorize]`, account from the JWT `userId` claim, never the body): verifies `CurrentPassword`
+  against the stored `PasswordHash`, enforces `Auth/PasswordPolicy` (len ≥ 8 **and** ≥ 3 of
+  upper/lower/digit/symbol, bilingual `ComplexityMessage`), requires new == confirm, then
+  `IAuthRepository.UpdatePasswordAsync` sets `PasswordHash = SHA256(new)` + stamps
+  `PasswordUpdatedTime`; no hash ever crosses the wire. Frontend adds a Change Password form on the
+  profile page validated by a shared `core/auth/password-policy.ts` (mirrors the server rule); server
+  rejections shown inline. Tests: `ChangePasswordEndpointTests` (fresh factory per test),
+  `password-policy.spec`, and password-form cases in `profile.spec`.
+- **2026-07-15** — Course **list inline editing**: double-click a cell to edit (single-click does
+  not); type-matched editors (text/number/`p-datepicker`/`p-select` for 上架狀態/`p-checkbox` for
+  允許重聽). The three read-only columns — 主代碼 (pkid), 原廠, 課程群組 (FK labels) — stay
+  display-only. Commit on blur (select/checkbox on change) → validate (required not cleared,
+  非負 numbers, valid dates, 上架日期 ≤ 下架日期) → `getById` then `update` so the N-N lists the
+  list row omits are not wiped; invalid values keep the cell in edit mode with an inline error, a
+  failed save reverts. New `shared/autofocus` directive; inline-edit unit tests on the list.
+- **2026-07-15** — Course detail **QR code**: reusable `shared/qr-code` (`QrCode`) component +
+  `QrCodeService` wrapping the new `qrcode` dependency — encodes
+  `https://www.uuu.com.tw/Course/Show/{pkid}/{CourseId}`, shows CourseId as the title, downloads a
+  PNG. Placed in 基本資料; Karma tests for encode/title/download.
+- **2026-07-15** — Added the **FeaturedPromoItem 上稿作業** custom feature (spec
+  `spec/custom/FeaturedPromoItem`). Backend: model trio + repo/controller at
+  `/api/featured-promo-items` (int IDENTITY PK, INNER-JOINed `PromoCode` (Promotion2) and
+  `TrainingCenter.Name` labels; query filters by `TrainingCenter_pkid` + a Monday–Sunday
+  `ScheduleOn` range), plus `training-centers` / `promotions` lookups. Frontend: a weekly
+  scheduler (`features/featured-promo-items`) with TrainingCenter tabs, a Monday→Sunday week
+  navigator, and an inline Edit/New/Paste form whose PromoCode autocomplete resolves
+  `Promotion_pkid`; menu entry under 首頁管理 Home. xUnit + Karma tests both sides.
+- **2026-07-15** — Trimmed `CLAUDE.md` under 2 KB; moved this change log and one-time
+  setup context here, leaving a one-line reference link in `CLAUDE.md`.
+- **2026-07-15** — Split detailed conventions out of `CLAUDE.md` into
+  [backend-conventions.md](backend-conventions.md) and
+  [frontend-conventions.md](frontend-conventions.md); `CLAUDE.md` now holds core rules +
+  a pointer index. Reduces always-loaded context.
+- **2026-07-15** — Scaffolded reference entities beyond AppRole: PublishStatus, Partner,
+  CourseGroup, Course, and AppUser (models, repositories, controllers, xUnit tests + fakes).
+- **2026-07-15** — Added the `DateOnly` Dapper type handler (`Data/DateOnlyTypeHandler.cs`,
+  registered first in `Program.cs`) with `DateOnlyMappingTests` regression guard, for
+  `Course.ScheduleOn`/`ScheduleOff` `date` columns.

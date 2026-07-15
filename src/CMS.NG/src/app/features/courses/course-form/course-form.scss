@@ -1,0 +1,113 @@
+.page-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Fill the page content region so the toolbar can pin while the body scrolls internally.
+   The app-shell adds 1rem padding top+bottom, hence `100vh - 2rem`. */
+.course-form {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 2rem);
+  min-height: 0;
+}
+
+/* Only this region scrolls; the sticky toolbar lives inside it and pins to its top.
+   Overlays (p-select/p-datepicker/p-multiselect) use appendTo="body", so clipping x is safe. */
+.form-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.25rem;
+}
+
+.header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Freeze the Save/Cancel toolbar at the top of the scrolling form body. */
+.sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20; /* stay above the form cards so fields never overlap it */
+}
+
+.page-title h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  color: #334155;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem 1.5rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-field.span-2 {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.toggle-field {
+  align-self: end;
+}
+
+.readonly-value {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 1.15rem;
+}
+
+.req {
+  color: #ef4444;
+}
+
+.error {
+  color: #ef4444;
+  font-size: 0.8rem;
+}
+
+.form-field input,
+.form-field textarea {
+  width: 100%;
+}
+
+:host ::ng-deep .form-field .p-inputnumber,
+:host ::ng-deep .form-field .p-select,
+:host ::ng-deep .form-field .p-datepicker,
+:host ::ng-deep .form-field .p-multiselect,
+:host ::ng-deep .form-field .w-full {
+  width: 100%;
+}

@@ -1,0 +1,232 @@
+<p-toast />
+
+<form class="course-form" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-scroll">
+    <div class="page-card header-card sticky-toolbar">
+      <div class="page-title">
+        <h1>{{ isEdit() ? '編輯課程' : '新增課程' }}</h1>
+      </div>
+      <div class="page-actions">
+        <p-button label="取消" icon="pi pi-times" severity="secondary" type="button" (onClick)="cancel()" />
+        <p-button label="儲存" icon="pi pi-check" severity="success" type="submit" [loading]="saving()" />
+      </div>
+    </div>
+
+  @if (loading()) {
+    <div class="page-card">載入中…</div>
+  } @else {
+    <div class="page-card">
+      <h2 class="section-title">基本資料</h2>
+
+      @if (isEdit()) {
+        <div class="form-field">
+          <label>主代碼</label>
+          <span class="readonly-value">{{ pkidDisplay() }}</span>
+        </div>
+      }
+
+      <div class="form-grid">
+        <div class="form-field span-2">
+          <label for="title">課程名稱 <span class="req">*</span></label>
+          <input id="title" type="text" pInputText formControlName="title" maxlength="200" placeholder="請輸入課程名稱" />
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <small class="error">課程名稱為必填。</small>
+          }
+        </div>
+
+        <div class="form-field span-2">
+          <label for="officialTitle">官方課程名稱</label>
+          <input id="officialTitle" type="text" pInputText formControlName="officialTitle" maxlength="300" placeholder="選填" />
+        </div>
+
+        <div class="form-field">
+          <label for="courseId">簡介代碼 <span class="req">*</span></label>
+          <input id="courseId" type="text" pInputText formControlName="courseId" maxlength="50" placeholder="請輸入簡介代碼" />
+          @if (form.controls.courseId.invalid && form.controls.courseId.touched) {
+            <small class="error">簡介代碼為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="prodCourseId">科目代碼 <span class="req">*</span></label>
+          <input id="prodCourseId" type="text" pInputText formControlName="prodCourseId" maxlength="50" placeholder="請輸入科目代碼" />
+          @if (form.controls.prodCourseId.invalid && form.controls.prodCourseId.touched) {
+            <small class="error">科目代碼為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="friendlyUrl">友善網址 <span class="req">*</span></label>
+          <input id="friendlyUrl" type="text" pInputText formControlName="friendlyUrl" maxlength="100" placeholder="請輸入友善網址" />
+          @if (form.controls.friendlyUrl.invalid && form.controls.friendlyUrl.touched) {
+            <small class="error">友善網址為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="displayOrder">顯示順序 <span class="req">*</span></label>
+          <p-inputnumber inputId="displayOrder" formControlName="displayOrder" [useGrouping]="false" />
+        </div>
+
+        <div class="form-field">
+          <label for="partnerPkid">原廠 <span class="req">*</span></label>
+          <p-select
+            inputId="partnerPkid"
+            formControlName="partnerPkid"
+            [options]="partnerOptions()"
+            optionLabel="label"
+            optionValue="pkid"
+            [filter]="true"
+            filterBy="label"
+            placeholder="請選擇原廠"
+            appendTo="body"
+          />
+          @if (form.controls.partnerPkid.invalid && form.controls.partnerPkid.touched) {
+            <small class="error">原廠為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="courseGroupPkid">課程群組</label>
+          <p-select
+            inputId="courseGroupPkid"
+            formControlName="courseGroupPkid"
+            [options]="courseGroupOptions()"
+            optionLabel="label"
+            optionValue="pkid"
+            [showClear]="true"
+            placeholder="（無）"
+            appendTo="body"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="publishStatusPkid">上架狀態 <span class="req">*</span></label>
+          <p-select
+            inputId="publishStatusPkid"
+            formControlName="publishStatusPkid"
+            [options]="publishStatusOptions()"
+            optionLabel="label"
+            optionValue="pkid"
+            placeholder="請選擇上架狀態"
+            appendTo="body"
+          />
+          @if (form.controls.publishStatusPkid.invalid && form.controls.publishStatusPkid.touched) {
+            <small class="error">上架狀態為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="scheduleOn">上架日期 <span class="req">*</span></label>
+          <p-datepicker inputId="scheduleOn" formControlName="scheduleOn" dateFormat="yy-mm-dd" [showButtonBar]="true" appendTo="body" />
+          @if (form.controls.scheduleOn.invalid && form.controls.scheduleOn.touched) {
+            <small class="error">上架日期為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="scheduleOff">下架日期 <span class="req">*</span></label>
+          <p-datepicker inputId="scheduleOff" formControlName="scheduleOff" dateFormat="yy-mm-dd" [showButtonBar]="true" appendTo="body" />
+          @if (form.controls.scheduleOff.invalid && form.controls.scheduleOff.touched) {
+            <small class="error">下架日期為必填。</small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="hour">時數 <span class="req">*</span></label>
+          <p-inputnumber inputId="hour" formControlName="hour" [useGrouping]="false" />
+        </div>
+
+        <div class="form-field">
+          <label for="listPrice">定價 <span class="req">*</span></label>
+          <p-inputnumber inputId="listPrice" formControlName="listPrice" [maxFractionDigits]="0" />
+        </div>
+
+        <div class="form-field">
+          <label for="learningCredit">點數 <span class="req">*</span></label>
+          <p-inputnumber inputId="learningCredit" formControlName="learningCredit" [minFractionDigits]="1" [maxFractionDigits]="1" />
+        </div>
+
+        <div class="form-field toggle-field">
+          <label for="canRepeat">允許重聽</label>
+          <p-toggleswitch inputId="canRepeat" formControlName="canRepeat" />
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <h2 class="section-title">課程內容</h2>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="material">教材</label>
+          <input id="material" type="text" pInputText formControlName="material" maxlength="500" placeholder="選填" />
+        </div>
+        <div class="form-field">
+          <label for="target">適合對象</label>
+          <input id="target" type="text" pInputText formControlName="target" maxlength="500" placeholder="選填" />
+        </div>
+        <div class="form-field span-2">
+          <label for="objective">課程目標</label>
+          <textarea id="objective" pTextarea formControlName="objective" rows="3"></textarea>
+        </div>
+        <div class="form-field span-2">
+          <label for="prerequisites">先備知識</label>
+          <textarea id="prerequisites" pTextarea formControlName="prerequisites" rows="3"></textarea>
+        </div>
+        <div class="form-field span-2">
+          <label for="outline">課程大綱</label>
+          <textarea id="outline" pTextarea formControlName="outline" rows="4"></textarea>
+        </div>
+        <div class="form-field span-2">
+          <label for="towardCertOrExam">考照／認證說明</label>
+          <textarea id="towardCertOrExam" pTextarea formControlName="towardCertOrExam" rows="3"></textarea>
+        </div>
+        <div class="form-field span-2">
+          <label for="note">備註</label>
+          <textarea id="note" pTextarea formControlName="note" rows="2"></textarea>
+        </div>
+        <div class="form-field span-2">
+          <label for="otherInfo">其他資訊</label>
+          <textarea id="otherInfo" pTextarea formControlName="otherInfo" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <h2 class="section-title">對應認證</h2>
+      <div class="form-field">
+        <p-multiselect
+          formControlName="certificationPkids"
+          [options]="certificationOptions()"
+          optionLabel="label"
+          optionValue="pkid"
+          [filter]="true"
+          filterBy="label"
+          placeholder="選擇認證（可複選）"
+          [maxSelectedLabels]="9999"
+          appendTo="body"
+          styleClass="w-full"
+        />
+      </div>
+    </div>
+
+    <div class="page-card">
+      <h2 class="section-title">對應職類</h2>
+      <div class="form-field">
+        <p-multiselect
+          formControlName="jobCategoryPkids"
+          [options]="jobCategoryOptions()"
+          optionLabel="label"
+          optionValue="pkid"
+          [filter]="true"
+          filterBy="label"
+          placeholder="選擇職類（可複選）"
+          [maxSelectedLabels]="9999"
+          appendTo="body"
+          styleClass="w-full"
+        />
+      </div>
+    </div>
+  }
+  </div>
+</form>

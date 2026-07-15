@@ -1,53 +1,79 @@
-<div class="app-shell" [class.collapsed]="collapsed()">
-  <aside class="layout-sidebar">
-    <div class="sidebar-header">
-      <a class="app-logo">
-        <span class="logo-mark">U</span>
-        <span class="logo-text">UWA</span>
-      </a>
-      <button type="button" class="collapse-btn" (click)="toggleSidebar()" aria-label="收合選單">
-        <i class="pi" [class.pi-angle-left]="!collapsed()" [class.pi-angle-right]="collapsed()"></i>
-      </button>
-    </div>
+@if (auth.isAuthenticated()) {
+  <div class="app-shell" [class.collapsed]="collapsed()">
+    <aside class="layout-sidebar">
+      <div class="sidebar-header">
+        <a class="app-logo">
+          <span class="logo-mark">U</span>
+          <span class="logo-text">UWA</span>
+        </a>
+        <button type="button" class="collapse-btn" (click)="toggleSidebar()" aria-label="收合選單">
+          <i
+            class="pi"
+            [class.pi-angle-left]="!collapsed()"
+            [class.pi-angle-right]="collapsed()"
+          ></i>
+        </button>
+      </div>
 
-    <nav class="layout-menu">
-      <span class="menu-section-label">功能選單 MENU</span>
+      <nav class="layout-menu">
+        <span class="menu-section-label">功能選單 MENU</span>
 
-      <ul class="menu-list">
-        @for (group of groups(); track group.label) {
-          <li class="menu-item" [class.expanded]="group.expanded">
-            <button type="button" class="menu-link menu-group" (click)="toggleGroup(group)">
-              <i class="menu-icon" [ngClass]="group.icon"></i>
-              <span class="menu-text">{{ group.label }}</span>
-              <i class="menu-toggler pi pi-angle-down"></i>
-            </button>
+        <ul class="menu-list">
+          @for (group of visibleGroups(); track group.label) {
+            <li class="menu-item" [class.expanded]="group.expanded">
+              <button type="button" class="menu-link menu-group" (click)="toggleGroup(group)">
+                <i class="menu-icon" [ngClass]="group.icon"></i>
+                <span class="menu-text">{{ group.label }}</span>
+                <i class="menu-toggler pi pi-angle-down"></i>
+              </button>
 
-            @if (group.items.length) {
-              <ul class="submenu" [class.open]="group.expanded">
-                @for (item of group.items; track item.label) {
-                  <li>
-                    @if (item.route) {
-                      <a class="menu-link submenu-link" [routerLink]="item.route" routerLinkActive="active-route">
-                        <i class="menu-dot pi pi-circle-fill"></i>
-                        <span class="menu-text">{{ item.label }}</span>
-                      </a>
-                    } @else {
-                      <span class="menu-link submenu-link disabled">
-                        <i class="menu-dot pi pi-circle-fill"></i>
-                        <span class="menu-text">{{ item.label }}</span>
-                      </span>
-                    }
-                  </li>
-                }
-              </ul>
-            }
-          </li>
-        }
-      </ul>
-    </nav>
-  </aside>
+              @if (group.items.length) {
+                <ul class="submenu" [class.open]="group.expanded">
+                  @for (item of group.items; track item.label) {
+                    <li>
+                      @if (item.route) {
+                        <a
+                          class="menu-link submenu-link"
+                          [routerLink]="item.route"
+                          routerLinkActive="active-route"
+                        >
+                          <i class="menu-dot pi pi-circle-fill"></i>
+                          <span class="menu-text">{{ item.label }}</span>
+                        </a>
+                      } @else {
+                        <span class="menu-link submenu-link disabled">
+                          <i class="menu-dot pi pi-circle-fill"></i>
+                          <span class="menu-text">{{ item.label }}</span>
+                        </span>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      </nav>
+    </aside>
 
-  <main class="content">
-    <router-outlet />
-  </main>
-</div>
+    <main class="content">
+      <header class="app-header">
+        <div class="app-header-spacer"></div>
+        <div class="app-header-user">
+          <a class="profile-link" routerLink="/profile" routerLinkActive="active-route">
+            <i class="pi pi-user"></i>
+            <span class="user-name">{{ auth.userName() }}</span>
+          </a>
+          <button type="button" class="logout-btn" (click)="logout()">
+            <i class="pi pi-sign-out"></i>
+            <span>登出 Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <router-outlet />
+    </main>
+  </div>
+} @else {
+  <router-outlet />
+}

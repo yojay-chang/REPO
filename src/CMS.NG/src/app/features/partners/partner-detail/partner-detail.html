@@ -1,0 +1,63 @@
+<p-toast />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>檢視合作廠商</h1>
+    @if (partner()) {
+      <span class="subtitle">{{ partner()!.name }}</span>
+    }
+  </div>
+  <div class="page-actions">
+    <p-button label="返回" icon="pi pi-arrow-left" severity="secondary" (onClick)="back()" />
+    @if (partner()) {
+      <p-button label="編輯" icon="pi pi-pencil" severity="info" (onClick)="edit()" />
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="page-card">載入中…</div>
+} @else if (partner(); as p) {
+  <div class="page-card">
+    <h2 class="section-title">合作廠商資料</h2>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="label">主代碼</span>
+        <span class="value">{{ p.pkid }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">廠商名稱</span>
+        <span class="value">{{ p.name }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">應用金鑰</span>
+        <span class="value">{{ p.appKey }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">顯示順序</span>
+        <span class="value">{{ p.displayOrder }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">廠商選單顯示名稱</span>
+        <span class="value">{{ p.nameOnPartnerMenu }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">課程詳細頁顯示名稱</span>
+        <span class="value">{{ p.nameOnCourseDetailPage }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">圖片檔名</span>
+        <span class="value">{{ p.imageFilename || '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <h2 class="section-title">相關資料</h2>
+    <div class="link-actions">
+      <p-button label="查看課程" icon="pi pi-book" severity="secondary" [outlined]="true" (onClick)="viewCourses()" />
+      <p-button label="查看認證" icon="pi pi-verified" severity="secondary" [outlined]="true" (onClick)="viewCertifications()" />
+      <p-button label="查看課程群組" icon="pi pi-sitemap" severity="secondary" [outlined]="true" (onClick)="viewCourseGroups()" />
+    </div>
+  </div>
+}

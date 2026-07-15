@@ -1,0 +1,52 @@
+<p-toast />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>檢視發布狀態</h1>
+    @if (status()) {
+      <span class="subtitle">{{ status()!.description }}</span>
+    }
+  </div>
+  <div class="page-actions">
+    <p-button label="返回" icon="pi pi-arrow-left" severity="secondary" (onClick)="back()" />
+    @if (status()) {
+      <p-button label="編輯" icon="pi pi-pencil" severity="info" (onClick)="edit()" />
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="page-card">載入中…</div>
+} @else if (status(); as s) {
+  <div class="page-card">
+    <h2 class="section-title">發布狀態資料</h2>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="label">主代碼</span>
+        <span class="value">{{ s.pkid }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">狀態說明</span>
+        <span class="value">{{ s.description }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">草稿</span>
+        <span class="value">
+          <p-tag [value]="s.isDraft ? '是' : '否'" [severity]="s.isDraft ? 'success' : 'secondary'" />
+        </span>
+      </div>
+      <div class="detail-field">
+        <span class="label">已發布</span>
+        <span class="value">
+          <p-tag [value]="s.isPublished ? '是' : '否'" [severity]="s.isPublished ? 'success' : 'secondary'" />
+        </span>
+      </div>
+      <div class="detail-field">
+        <span class="label">已停用</span>
+        <span class="value">
+          <p-tag [value]="s.isDiscontinued ? '是' : '否'" [severity]="s.isDiscontinued ? 'success' : 'secondary'" />
+        </span>
+      </div>
+    </div>
+  </div>
+}
