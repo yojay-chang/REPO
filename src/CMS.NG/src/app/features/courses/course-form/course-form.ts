@@ -17,6 +17,7 @@ import { CourseRequest } from '@core/models/course.model';
 import { CourseService } from '@core/services/course.service';
 import { LookupService } from '@core/services/lookup.service';
 import { toIsoDate, parseIsoDate } from '@core/utils/date.util';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 interface Option {
   pkid: number;
@@ -36,6 +37,7 @@ interface Option {
     DatePickerModule,
     ToggleSwitchModule,
     ToastModule,
+    RowAuditBadge,
   ],
   templateUrl: './course-form.html',
   styleUrl: './course-form.scss',

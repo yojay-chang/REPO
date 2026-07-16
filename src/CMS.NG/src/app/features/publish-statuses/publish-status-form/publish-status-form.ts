@@ -10,6 +10,7 @@ import { MessageService } from 'primeng/api';
 
 import { PublishStatusRequest } from '@core/models/publish-status.model';
 import { PublishStatusService } from '@core/services/publish-status.service';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 @Component({
   selector: 'app-publish-status-form',
@@ -20,6 +21,7 @@ import { PublishStatusService } from '@core/services/publish-status.service';
     InputNumberModule,
     ToggleSwitchModule,
     ToastModule,
+    RowAuditBadge,
   ],
   templateUrl: './publish-status-form.html',
   styleUrl: './publish-status-form.scss',
@@ -35,6 +37,9 @@ export class PublishStatusForm implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
 
+  /** The edited record's numeric pkid (null when creating) — drives the row-audit history badge. */
+  readonly recordPkid = signal<number | null>(null);
+
   private pkid: number | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -49,6 +54,7 @@ export class PublishStatusForm implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     this.pkid = idParam === null ? null : Number(idParam);
     this.isEdit.set(this.pkid !== null);
+    this.recordPkid.set(this.pkid);
 
     if (this.pkid === null) {
       this.loading.set(false);

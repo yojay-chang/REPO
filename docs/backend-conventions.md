@@ -40,6 +40,83 @@ Backend core rules plus entity-shape-specific recipes. The reference-feature ind
 - INNER JOIN for NOT NULL FKs, **LEFT JOIN for nullable** FKs (null label when unset).
 - Labels live on the response model only, excluded from Request/INSERT/UPDATE.
 
+## Row audit (cross-cutting)
+
+`Auditing/RowAuditWriter` (`IRowAuditWriter`, `AddScoped`) writes **one** `RowAudit` row per change to
+any business table. It is **generic** — the primary key and description columns are found by reflection,
+so no per-entity wiring. Each log method has two overloads:
+
+- Stand-alone: `LogInsertAsync<T>(tableName, entity)` · `LogUpdateAsync<T>(tableName, before, after)` ·
+  `LogDeleteAsync<T>(tableName, entity)` — opens its own connection.
+- **Same-connection/transaction**: the same three names prefixed with `(IDbConnection, IDbTransaction?, …)`
+  — the audit INSERT rides the caller's connection/transaction so a rolled-back or failed change leaves
+  no audit row. **This is the form the repositories use.**
+
+**Wired into all seven CRUD repositories** — PublishStatus, Partner, CourseGroup (Lab 03 simple),
+AppRole, AppUser, Course (Lab 03 n-n) and FeaturedPromoItem (Lab 04). The retrofit convention per op:
+
+- Every mutating method now runs inside a **transaction** (the simple repos gained one; the n-n repos
+  already had one), and the audit call is the last statement **before `Commit()`**.
+- **Insert** — after the row exists (its pkid known), read it back and `LogInsert`.
+- **Update** — read the row **before**, apply the update, read it **after**, `LogUpdate(before, after)`
+  so the changed-column list is accurate; an update that changes nothing writes no row (`BuildUpdate`
+  returns null). A missing row rolls back and returns `false` (no audit).
+- **Delete** — read the row **before** deleting, then `LogDelete` (so the first string column survives).
+- Each repo has a private `ReadForAuditAsync(db, tx, pk)` that selects **base-table columns only** — no
+  JOINed FK labels, no n-n lists, no `COUNT(*)` subqueries — so the changed-column diff and the
+  first-string `ActionDesc` reflect only real columns of that table (e.g. `Course` excludes `PartnerName`;
+  `AppRole`/`AppUser` exclude the user/role counts; `AppUser` never reads `PasswordHash`).
+- `TableName` is the real DB table name, held as a `private const string TableName` on each repo.
+
+Coverage: `RowAuditWriterTests` unit-tests the pure builders; `RowAuditRetrofitTests` drives the real
+`PublishStatusRepository` against an in-memory SQLite DB and asserts Insert/Update/Delete each write the
+right row, an unchanged update writes none, and a failed insert (duplicate PK) leaves no audit row.
+
+Column mapping (Dapper INSERT; `pkid` is IDENTITY, never inserted — bracket `[DateTime]`, a reserved word):
+
+- **UserName** — the `userName` claim of the current request's JWT (via injected `IHttpContextAccessor`;
+  falls back to `ClaimTypes.Name`, then the literal `"system"` when unauthenticated).
+- **PrimaryKeyValues** — the entity's `pkid` property (case-insensitive match) as a string.
+- **ActionType** — `"Insert"` | `"Update"` | `"Delete"`.
+- **ActionDesc** — Insert/Delete: the **first string property in declaration order** (Title/Name/Code…).
+  Update: a comma-separated list of the property **names** whose value differs between `before`/`after`;
+  when nothing changed `BuildUpdate` returns `null` and **no row is written**. Truncated to **1000** chars.
+- **DateTime** — `DateTime.Now`.
+
+The reflection logic lives in **pure static** helpers (`BuildInsert`/`BuildUpdate`/`BuildDelete`,
+`GetPrimaryKeyValue`, `GetFirstStringPropertyValue`, `GetChangedPropertyNames`, `ResolveUserName`) that
+take the timestamp + user name as arguments — so they unit-test with no DB and no HTTP context
+(`RowAuditWriterTests`). Requires `builder.Services.AddHttpContextAccessor()` in `Program.cs`.
+Declaration-order/changed-name detection relies on `Type.GetProperties()` order, which holds for the flat
+POCO models here (not a documented CLR guarantee for inherited types).
+
+**Reading the trail.** `IRowAuditRepository.GetForRecordAsync(tableName, pkid)` (`RowAuditRepository`,
+`AddScoped`) returns the entries for one record as `RowAuditEntry` (DateTime / UserName / ActionType /
+ActionDesc), matched on `TableName` + `PrimaryKeyValues = pkid.ToString()` and ordered `[DateTime] DESC,
+pkid DESC` (newest first, audit `pkid` as the tie-breaker). Exposed by `RowAuditController` as
+`GET /api/rowaudit?tableName={T}&pkid={n}` (empty `tableName` → 400); protected by the global auth policy
+like every other controller. The frontend `RowAuditBadge` consumes it — see frontend-conventions. Coverage:
+`RowAuditRepositoryTests` (real repo on SQLite: filter + newest-first) and `RowAuditControllerTests`
+(endpoint via `WebApplicationFactory` + `FakeRowAuditRepository`).
+
+## Global exception handling
+
+`Middleware/ExceptionHandlingMiddleware` catches **any** unhandled exception thrown downstream
+(controllers, repositories, Dapper/SQL) and turns it into ONE consistent error response: HTTP **500**
+with a generic JSON body `{ "message": "An unexpected error occurred." }`
+(`ExceptionHandlingMiddleware.GenericMessage`). The full exception (message + stack trace) is logged
+server-side only via `ILogger` — the **stack trace, SQL text, and connection details never reach the
+client**. Registered **first** in the pipeline (`app.UseMiddleware<ExceptionHandlingMiddleware>()`
+immediately after `Build()`, before Swagger/CORS/auth) so it wraps everything.
+
+- It only reacts to *thrown* exceptions, so the status codes that are set **without throwing** flow
+  through untouched: **401** (unauthenticated, from the auth middleware), **403** (forbidden,
+  `Forbid()`), and **validation/400** (model binding / `BadRequest`). These are unchanged by design.
+- If `Response.HasStarted` it rethrows (can't rewrite a response already streaming).
+- Tests: `ExceptionHandlingTests` (+ `ExceptionHandlingApiFactory`, which keeps real auth but swaps the
+  AppRole repo for `ThrowingAppRoleRepository`) prove a throwing endpoint → 500 + generic message with
+  no leaked stack trace/SQL, while 401/403/validation-400 are unchanged.
+
 ## `date`/`time` columns (`DateOnly`/`TimeOnly`)
 
 Dapper (2.1.66 + Microsoft.Data.SqlClient 6.0.1) does **not** map these natively — it hands back

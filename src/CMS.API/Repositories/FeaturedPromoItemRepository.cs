@@ -1,3 +1,5 @@
+using System.Data;
+using CMS.API.Auditing;
 using CMS.API.Data;
 using CMS.API.Models;
 using Dapper;
@@ -6,11 +8,15 @@ namespace CMS.API.Repositories;
 
 public class FeaturedPromoItemRepository : IFeaturedPromoItemRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private const string TableName = "FeaturedPromoItem";
 
-    public FeaturedPromoItemRepository(IDbConnectionFactory connectionFactory)
+    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IRowAuditWriter _audit;
+
+    public FeaturedPromoItemRepository(IDbConnectionFactory connectionFactory, IRowAuditWriter audit)
     {
         _connectionFactory = connectionFactory;
+        _audit = audit;
     }
 
     // PromoCode (Promotion2) and TrainingCenter Name are JOINed in as flat read-only labels.
@@ -22,6 +28,13 @@ public class FeaturedPromoItemRepository : IFeaturedPromoItemRepository
         FROM FeaturedPromoItem f
              INNER JOIN Promotion2 p      ON p.pkid  = f.Promotion_pkid
              INNER JOIN TrainingCenter tc ON tc.pkid = f.TrainingCenter_pkid";
+
+    // Base columns only (no joined labels) — the shape compared for audit so the changed-column
+    // list reflects only the real FeaturedPromoItem columns, never a derived label.
+    private const string AuditSelectColumns = @"
+        SELECT f.pkid, f.ScheduleOn, f.TrainingCenter_pkid AS TrainingCenterPkid, f.Slot,
+               f.Promotion_pkid AS PromotionPkid, f.Topic, f.Description
+        FROM FeaturedPromoItem f";
 
     public async Task<IEnumerable<FeaturedPromoItem>> GetAllAsync()
     {
@@ -72,31 +85,67 @@ public class FeaturedPromoItemRepository : IFeaturedPromoItemRepository
     public async Task<int> CreateAsync(FeaturedPromoItemRequest request)
     {
         using var db = _connectionFactory.CreateConnection();
-        return await db.ExecuteScalarAsync<int>(
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        var pkid = await db.ExecuteScalarAsync<int>(
             @"INSERT INTO FeaturedPromoItem (ScheduleOn, TrainingCenter_pkid, Slot, Promotion_pkid, Topic, Description)
               VALUES (@ScheduleOn, @TrainingCenterPkid, @Slot, @PromotionPkid, @Topic, @Description);
               SELECT CAST(SCOPE_IDENTITY() AS int);",
-            Params(request));
+            Params(request), tx);
+
+        var created = await ReadForAuditAsync(db, tx, pkid);
+        await _audit.LogInsertAsync(db, tx, TableName, created);
+
+        tx.Commit();
+        return pkid;
     }
 
     public async Task<bool> UpdateAsync(FeaturedPromoItemRequest request)
     {
         using var db = _connectionFactory.CreateConnection();
-        var affected = await db.ExecuteAsync(
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, request.Pkid);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
+        await db.ExecuteAsync(
             @"UPDATE FeaturedPromoItem
                  SET ScheduleOn = @ScheduleOn, TrainingCenter_pkid = @TrainingCenterPkid, Slot = @Slot,
                      Promotion_pkid = @PromotionPkid, Topic = @Topic, Description = @Description
                WHERE pkid = @Pkid",
-            Params(request));
-        return affected > 0;
+            Params(request), tx);
+
+        var after = await ReadForAuditAsync(db, tx, request.Pkid);
+        await _audit.LogUpdateAsync(db, tx, TableName, before, after);
+
+        tx.Commit();
+        return true;
     }
 
     public async Task<bool> DeleteAsync(int pkid)
     {
         using var db = _connectionFactory.CreateConnection();
-        var affected = await db.ExecuteAsync(
-            "DELETE FROM FeaturedPromoItem WHERE pkid = @Pkid", new { Pkid = pkid });
-        return affected > 0;
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, pkid);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
+        await db.ExecuteAsync("DELETE FROM FeaturedPromoItem WHERE pkid = @Pkid", new { Pkid = pkid }, tx);
+        await _audit.LogDeleteAsync(db, tx, TableName, before);
+
+        tx.Commit();
+        return true;
     }
 
     /// <summary>Scalar parameters shared by INSERT and UPDATE.</summary>
@@ -110,4 +159,9 @@ public class FeaturedPromoItemRepository : IFeaturedPromoItemRepository
         r.Topic,
         r.Description,
     };
+
+    /// <summary>Read the current row (base columns only) on the caller's connection/transaction for auditing.</summary>
+    private static Task<FeaturedPromoItem?> ReadForAuditAsync(IDbConnection db, IDbTransaction tx, int pkid) =>
+        db.QuerySingleOrDefaultAsync<FeaturedPromoItem>(
+            $"{AuditSelectColumns} WHERE f.pkid = @Pkid", new { Pkid = pkid }, tx);
 }

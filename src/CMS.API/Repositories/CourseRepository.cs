@@ -1,4 +1,5 @@
 using System.Data;
+using CMS.API.Auditing;
 using CMS.API.Data;
 using CMS.API.Models;
 using Dapper;
@@ -7,12 +8,26 @@ namespace CMS.API.Repositories;
 
 public class CourseRepository : ICourseRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private const string TableName = "Course";
 
-    public CourseRepository(IDbConnectionFactory connectionFactory)
+    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IRowAuditWriter _audit;
+
+    public CourseRepository(IDbConnectionFactory connectionFactory, IRowAuditWriter audit)
     {
         _connectionFactory = connectionFactory;
+        _audit = audit;
     }
+
+    // Base columns only (no joined FK labels, no n-n lists) — the shape compared for audit so the
+    // changed-column list reflects only the real Course columns, never a derived label.
+    private const string AuditSelectColumns = @"
+        SELECT c.pkid, c.Title, c.OfficialTitle, c.CourseId, c.ProdCourseId, c.FriendlyUrl,
+               c.DisplayOrder, c.Partner_pkid AS PartnerPkid, c.CourseGroup_pkid AS CourseGroupPkid,
+               c.PublishStatus_pkid AS PublishStatusPkid, c.ScheduleOn, c.ScheduleOff, c.Hour,
+               c.ListPrice, c.LearningCredit, c.Material, c.Objective, c.Target, c.Prerequisites,
+               c.Outline, c.TowardCertOrExam, c.Note, c.OtherInfo, c.CanRepeat
+        FROM Course c";
 
     // FK labels are JOINed in as flat read-only columns (Partner INNER, CourseGroup LEFT — nullable,
     // PublishStatus INNER). Single-type mapping — no multi-map / splitOn required.
@@ -150,6 +165,9 @@ public class CourseRepository : ICourseRepository
         await SyncCertificationsAsync(db, tx, pkid, request.CertificationPkids);
         await SyncJobCategoriesAsync(db, tx, pkid, request.JobCategoryPkids);
 
+        var created = await ReadForAuditAsync(db, tx, pkid);
+        await _audit.LogInsertAsync(db, tx, TableName, created);
+
         tx.Commit();
         return pkid;
     }
@@ -159,6 +177,8 @@ public class CourseRepository : ICourseRepository
         using var db = _connectionFactory.CreateConnection();
         db.Open();
         using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, request.Pkid);
 
         var affected = await db.ExecuteAsync(
             @"UPDATE Course
@@ -181,6 +201,9 @@ public class CourseRepository : ICourseRepository
         await SyncCertificationsAsync(db, tx, request.Pkid, request.CertificationPkids);
         await SyncJobCategoriesAsync(db, tx, request.Pkid, request.JobCategoryPkids);
 
+        var after = await ReadForAuditAsync(db, tx, request.Pkid);
+        await _audit.LogUpdateAsync(db, tx, TableName, before, after);
+
         tx.Commit();
         return true;
     }
@@ -191,13 +214,27 @@ public class CourseRepository : ICourseRepository
         db.Open();
         using var tx = db.BeginTransaction();
 
+        var before = await ReadForAuditAsync(db, tx, pkid);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
         await db.ExecuteAsync("DELETE FROM CourseInCertification WHERE Course_pkid = @Pkid", new { Pkid = pkid }, tx);
         await db.ExecuteAsync("DELETE FROM CourseJobCategories WHERE Course_pkid = @Pkid", new { Pkid = pkid }, tx);
-        var affected = await db.ExecuteAsync("DELETE FROM Course WHERE pkid = @Pkid", new { Pkid = pkid }, tx);
+        await db.ExecuteAsync("DELETE FROM Course WHERE pkid = @Pkid", new { Pkid = pkid }, tx);
+
+        await _audit.LogDeleteAsync(db, tx, TableName, before);
 
         tx.Commit();
-        return affected > 0;
+        return true;
     }
+
+    /// <summary>Read the current row (base columns only) on the caller's connection/transaction for auditing.</summary>
+    private static Task<Course?> ReadForAuditAsync(IDbConnection db, IDbTransaction tx, int pkid) =>
+        db.QuerySingleOrDefaultAsync<Course>(
+            $"{AuditSelectColumns} WHERE c.pkid = @Pkid", new { Pkid = pkid }, tx);
 
     /// <summary>Scalar parameters shared by INSERT and UPDATE (excludes the N-N lists).</summary>
     private static object Params(CourseRequest r) => new

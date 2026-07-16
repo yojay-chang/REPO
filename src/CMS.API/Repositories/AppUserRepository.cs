@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using CMS.API.Auditing;
 using CMS.API.Data;
 using CMS.API.Models;
 using Dapper;
@@ -8,17 +9,27 @@ namespace CMS.API.Repositories;
 
 public class AppUserRepository : IAppUserRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private const string TableName = "AppUser";
 
-    public AppUserRepository(IDbConnectionFactory connectionFactory)
+    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IRowAuditWriter _audit;
+
+    public AppUserRepository(IDbConnectionFactory connectionFactory, IRowAuditWriter audit)
     {
         _connectionFactory = connectionFactory;
+        _audit = audit;
     }
 
     // PasswordHash is intentionally NOT selected — it never leaves the backend.
     private const string SelectColumns = @"
         SELECT u.pkid, u.UserId, u.UserName, u.IsActive, u.PasswordUpdatedTime,
                (SELECT COUNT(*) FROM AppUserRole ur WHERE ur.UserId = u.UserId) AS RoleCount
+        FROM AppUser u";
+
+    // Base columns only (no role-count subquery, no n-n list, never the PasswordHash) — the shape
+    // compared for audit so the changed-column list reflects only the real AppUser columns.
+    private const string AuditSelectColumns = @"
+        SELECT u.pkid, u.UserId, u.UserName, u.IsActive, u.PasswordUpdatedTime
         FROM AppUser u";
 
     public async Task<IEnumerable<AppUser>> GetAllAsync()
@@ -104,6 +115,9 @@ public class AppUserRepository : IAppUserRepository
 
         await SyncRolesAsync(db, tx, request.UserId, request.RoleIds);
 
+        var created = await ReadForAuditAsync(db, tx, request.UserId);
+        await _audit.LogInsertAsync(db, tx, TableName, created);
+
         tx.Commit();
         return request.UserId;
     }
@@ -113,6 +127,8 @@ public class AppUserRepository : IAppUserRepository
         using var db = _connectionFactory.CreateConnection();
         db.Open();
         using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, request.UserId);
 
         // PasswordHash / PasswordUpdatedTime are deliberately left untouched by update.
         var affected = await db.ExecuteAsync(
@@ -135,6 +151,9 @@ public class AppUserRepository : IAppUserRepository
 
         await SyncRolesAsync(db, tx, request.UserId, request.RoleIds);
 
+        var after = await ReadForAuditAsync(db, tx, request.UserId);
+        await _audit.LogUpdateAsync(db, tx, TableName, before, after);
+
         tx.Commit();
         return true;
     }
@@ -145,12 +164,26 @@ public class AppUserRepository : IAppUserRepository
         db.Open();
         using var tx = db.BeginTransaction();
 
+        var before = await ReadForAuditAsync(db, tx, userId);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
         await db.ExecuteAsync("DELETE FROM AppUserRole WHERE UserId = @UserId", new { UserId = userId }, tx);
-        var affected = await db.ExecuteAsync("DELETE FROM AppUser WHERE UserId = @UserId", new { UserId = userId }, tx);
+        await db.ExecuteAsync("DELETE FROM AppUser WHERE UserId = @UserId", new { UserId = userId }, tx);
+
+        await _audit.LogDeleteAsync(db, tx, TableName, before);
 
         tx.Commit();
-        return affected > 0;
+        return true;
     }
+
+    /// <summary>Read the current row (base columns only) on the caller's connection/transaction for auditing.</summary>
+    private static Task<AppUser?> ReadForAuditAsync(IDbConnection db, IDbTransaction tx, string userId) =>
+        db.QuerySingleOrDefaultAsync<AppUser>(
+            $"{AuditSelectColumns} WHERE u.UserId = @UserId", new { UserId = userId }, tx);
 
     /// <summary>Read SysConfig['appConfig'] (a JSON object) and extract the <c>defaultPassword</c> property.</summary>
     private static string GetDefaultPassword(IDbConnection db, IDbTransaction tx)

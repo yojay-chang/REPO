@@ -27,6 +27,7 @@ public abstract class FakeRepositoryApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IFeaturedPromoItemRepository>();
             services.RemoveAll<ILookupRepository>();
             services.RemoveAll<IAuthRepository>();
+            services.RemoveAll<IRowAuditRepository>();
 
             // Singleton so state persists across requests within one factory instance.
             services.AddSingleton<IAppRoleRepository, FakeAppRoleRepository>();
@@ -38,6 +39,7 @@ public abstract class FakeRepositoryApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IFeaturedPromoItemRepository, FakeFeaturedPromoItemRepository>();
             services.AddSingleton<ILookupRepository, FakeLookupRepository>();
             services.AddSingleton<IAuthRepository, FakeAuthRepository>();
+            services.AddSingleton<IRowAuditRepository, FakeRowAuditRepository>();
 
             ConfigureAuthorization(services);
         });

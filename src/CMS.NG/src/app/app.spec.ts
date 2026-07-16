@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
+import { MessageService } from 'primeng/api';
 import { App } from './app';
 import { UserProfile } from '@core/models/auth.model';
 
@@ -26,7 +27,7 @@ describe('App', () => {
     sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([]), provideHttpClient()],
+      providers: [provideRouter([]), provideHttpClient(), MessageService],
     }).compileComponents();
   });
 

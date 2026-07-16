@@ -2,6 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute, Router } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -45,6 +47,8 @@ describe('AppUserForm', () => {
     TestBed.configureTestingModule({
       imports: [AppUserForm],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([]),
         provideNoopAnimations(),
         MessageService,

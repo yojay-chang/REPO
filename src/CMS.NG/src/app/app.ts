@@ -1,7 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { ToastModule } from 'primeng/toast';
 import { AuthService } from '@core/auth/auth.service';
+import { GLOBAL_TOAST_KEY } from '@core/auth/auth.interceptor';
 
 interface NavItem {
   label: string;
@@ -21,13 +23,16 @@ const ADMIN_GROUP_LABEL = '系統管理 Admin';
 
 @Component({
   selector: 'app-root',
-  imports: [NgClass, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [NgClass, RouterOutlet, RouterLink, RouterLinkActive, ToastModule],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  /** Key of the app-level toast that displays global (interceptor-raised) errors. */
+  protected readonly globalToastKey = GLOBAL_TOAST_KEY;
 
   protected readonly collapsed = signal(false);
 

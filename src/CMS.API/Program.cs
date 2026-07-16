@@ -1,5 +1,7 @@
 using System.Text;
+using CMS.API.Auditing;
 using CMS.API.Data;
+using CMS.API.Middleware;
 using CMS.API.Repositories;
 using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -52,6 +54,11 @@ builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IFeaturedPromoItemRepository, FeaturedPromoItemRepository>();
 builder.Services.AddScoped<ILookupRepository, LookupRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IRowAuditRepository, RowAuditRepository>();
+
+// Cross-cutting row-audit writer + the HTTP-context accessor it reads the acting user from.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRowAuditWriter, RowAuditWriter>();
 
 // JWT bearer authentication. The signing key is resolved at validation time from SysConfig
 // ('appConfig'.symmetricSecurityKey) via IAuthRepository — the same key the AuthController signs with.
@@ -89,6 +96,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
+
+// First in the pipeline: convert any unhandled exception downstream into a safe 500 JSON response.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

@@ -9,6 +9,7 @@ import { MessageService } from 'primeng/api';
 
 import { PartnerRequest } from '@core/models/partner.model';
 import { PartnerService } from '@core/services/partner.service';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 @Component({
   selector: 'app-partner-form',
@@ -18,6 +19,7 @@ import { PartnerService } from '@core/services/partner.service';
     InputTextModule,
     InputNumberModule,
     ToastModule,
+    RowAuditBadge,
   ],
   templateUrl: './partner-form.html',
   styleUrl: './partner-form.scss',

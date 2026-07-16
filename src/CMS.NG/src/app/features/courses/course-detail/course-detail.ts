@@ -10,13 +10,14 @@ import { Course } from '@core/models/course.model';
 import { CourseService } from '@core/services/course.service';
 import { LookupService } from '@core/services/lookup.service';
 import { QrCode } from '@app/shared/qr-code/qr-code';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 /** Public site base used for the course QR-code deep link. */
 const COURSE_SITE_BASE = 'https://www.uuu.com.tw/Course/Show';
 
 @Component({
   selector: 'app-course-detail',
-  imports: [ButtonModule, TagModule, ToastModule, QrCode],
+  imports: [ButtonModule, TagModule, ToastModule, QrCode, RowAuditBadge],
   templateUrl: './course-detail.html',
   styleUrl: './course-detail.scss',
 })

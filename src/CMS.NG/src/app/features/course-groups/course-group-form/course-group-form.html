@@ -6,6 +6,7 @@
       <h1>{{ isEdit() ? '編輯課程群組' : '新增課程群組' }}</h1>
     </div>
     <div class="page-actions">
+      <app-row-audit-badge [tableName]="'CourseGroup'" [pkid]="pkidDisplay()" />
       <p-button label="取消" icon="pi pi-times" severity="secondary" type="button" (onClick)="cancel()" />
       <p-button label="儲存" icon="pi pi-check" severity="success" type="submit" [loading]="saving()" />
     </div>

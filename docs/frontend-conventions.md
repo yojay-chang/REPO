@@ -72,3 +72,38 @@ makes a naive page-level sticky bind to a non-scrolling ancestor and never stick
 Reusable `shared/qr-code` (`QrCode`) component + `QrCodeService` wrapping the `qrcode` dependency.
 The parent passes a pre-built `value` URL + `title` + `fileName`; the component encodes it to a PNG
 `data:` URL, shows the title, and downloads the PNG on demand. Used on the Course detail page.
+
+## Row-audit history badge
+
+Reusable standalone `shared/row-audit-badge` (`RowAuditBadge`) with signal inputs `tableName` (the
+audited table, e.g. `'Course'`) and `pkid` (the record's **numeric** pkid; `null` on a new/unsaved
+record). An `effect` fetches that record's trail via `RowAuditService.getForRecord` whenever `pkid`
+becomes a positive number (unsaved records skip the request), and the badge shows the most recent entry
+inline (`Update by alice · 2026-06-04 14:30`), or a neutral "尚無異動紀錄 no history" when there is none.
+Clicking opens a `p-dialog` listing the full trail (DateTime / User / Action / Description), newest first,
+with a "no history yet" empty state. Dropped into the `.page-actions` toolbar of every detail + edit page
+of the six pkid-keyed entities (PublishStatus, Partner, CourseGroup, AppRole, AppUser, Course) — for the
+string-keyed AppRole/AppUser and the create forms, bind `pkid` to the loaded record's numeric pkid
+(`recordPkid()` / `pkidDisplay()`), which is `null` until a record exists. FeaturedPromoItem has no
+single-record page, so it carries no badge. Because the badge injects `HttpClient`, any host page's unit
+spec needs `provideHttpClient()` + `provideHttpClientTesting()`.
+
+## Global error handling (interceptor)
+
+`core/auth/auth.interceptor.ts` centralizes HTTP error handling for every request:
+
+- **401** → `auth.logout()` + redirect to `/login` (unchanged).
+- **500-class (`status >= 500`)** → surfaces a friendly error **toast** using the safe `message` from
+  the response body (the backend's `{ "message": "An unexpected error occurred." }`), falling back to a
+  generic bilingual message when the body carries none. It does **not** clear the session or redirect.
+- **Other statuses (e.g. validation 400/403)** pass through untouched, so the form/page still handles
+  them inline as before.
+
+The toast is added via the globally-provided `MessageService` with a dedicated **`key`**
+(`GLOBAL_TOAST_KEY = 'global'`), and the app shell hosts a matching app-level `<p-toast [key]="…">`
+(`App` imports `ToastModule`) rendered **outside** the authenticated `@if`, so global errors show on any
+route (including `/login`). The dedicated key isolates it from the keyless per-page `<p-toast>` used for
+per-component success/save messages, so a global error never double-renders. Any spec whose component
+renders that app-level toast (or that exercises the interceptor) must provide `MessageService`. Tests:
+`auth.interceptor.spec` (500 → keyed error toast + no redirect/session-clear; 500 with no body → generic
+fallback; 401 still redirects and raises no toast).

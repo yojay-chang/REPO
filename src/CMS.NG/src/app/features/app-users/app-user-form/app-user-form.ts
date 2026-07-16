@@ -13,6 +13,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { AppUserRequest, AppRoleLookup } from '@core/models/app-user.model';
 import { AppUserService } from '@core/services/app-user.service';
 import { AuthService } from '@core/auth/auth.service';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 interface RoleOption {
   roleId: string;
@@ -29,6 +30,7 @@ interface RoleOption {
     MultiSelectModule,
     ToastModule,
     ConfirmDialogModule,
+    RowAuditBadge,
   ],
   templateUrl: './app-user-form.html',
   styleUrl: './app-user-form.scss',
@@ -47,6 +49,9 @@ export class AppUserForm implements OnInit {
   readonly saving = signal(false);
   readonly resetting = signal(false);
   readonly roleOptions = signal<RoleOption[]>([]);
+
+  /** The edited record's numeric pkid (null when creating) — drives the row-audit history badge. */
+  readonly recordPkid = signal<number | null>(null);
 
   /** Whether the signed-in user is an Admin — gates the "reset password" action (backend also enforces it). */
   readonly isAdmin = this.auth.isAdmin;
@@ -77,6 +82,7 @@ export class AppUserForm implements OnInit {
             roleIds: user.roleIds,
           });
           this.form.controls.userId.disable();
+          this.recordPkid.set(user.pkid);
         }
         this.loading.set(false);
       },

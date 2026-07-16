@@ -1,4 +1,5 @@
 using System.Data;
+using CMS.API.Auditing;
 using CMS.API.Data;
 using CMS.API.Models;
 using Dapper;
@@ -7,16 +8,26 @@ namespace CMS.API.Repositories;
 
 public class AppRoleRepository : IAppRoleRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private const string TableName = "AppRole";
 
-    public AppRoleRepository(IDbConnectionFactory connectionFactory)
+    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IRowAuditWriter _audit;
+
+    public AppRoleRepository(IDbConnectionFactory connectionFactory, IRowAuditWriter audit)
     {
         _connectionFactory = connectionFactory;
+        _audit = audit;
     }
 
     private const string SelectColumns = @"
         SELECT r.pkid, r.RoleId, r.RoleName, r.PermissionLevel, r.Description,
                (SELECT COUNT(*) FROM AppUserRole ur WHERE ur.RoleId = r.RoleId) AS UserCount
+        FROM AppRole r";
+
+    // Base columns only (no user-count subquery, no n-n list) — the shape compared for audit so the
+    // changed-column list reflects only the real AppRole columns.
+    private const string AuditSelectColumns = @"
+        SELECT r.pkid, r.RoleId, r.RoleName, r.PermissionLevel, r.Description
         FROM AppRole r";
 
     public async Task<IEnumerable<AppRole>> GetAllAsync()
@@ -99,6 +110,9 @@ public class AppRoleRepository : IAppRoleRepository
 
         await SyncUsersAsync(db, tx, request.RoleId, request.UserIds);
 
+        var created = await ReadForAuditAsync(db, tx, request.RoleId);
+        await _audit.LogInsertAsync(db, tx, TableName, created);
+
         tx.Commit();
         return request.RoleId;
     }
@@ -108,6 +122,8 @@ public class AppRoleRepository : IAppRoleRepository
         using var db = _connectionFactory.CreateConnection();
         db.Open();
         using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, request.RoleId);
 
         var affected = await db.ExecuteAsync(
             @"UPDATE AppRole
@@ -131,6 +147,9 @@ public class AppRoleRepository : IAppRoleRepository
 
         await SyncUsersAsync(db, tx, request.RoleId, request.UserIds);
 
+        var after = await ReadForAuditAsync(db, tx, request.RoleId);
+        await _audit.LogUpdateAsync(db, tx, TableName, before, after);
+
         tx.Commit();
         return true;
     }
@@ -141,12 +160,26 @@ public class AppRoleRepository : IAppRoleRepository
         db.Open();
         using var tx = db.BeginTransaction();
 
+        var before = await ReadForAuditAsync(db, tx, roleId);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
         await db.ExecuteAsync("DELETE FROM AppUserRole WHERE RoleId = @RoleId", new { RoleId = roleId }, tx);
-        var affected = await db.ExecuteAsync("DELETE FROM AppRole WHERE RoleId = @RoleId", new { RoleId = roleId }, tx);
+        await db.ExecuteAsync("DELETE FROM AppRole WHERE RoleId = @RoleId", new { RoleId = roleId }, tx);
+
+        await _audit.LogDeleteAsync(db, tx, TableName, before);
 
         tx.Commit();
-        return affected > 0;
+        return true;
     }
+
+    /// <summary>Read the current row (base columns only) on the caller's connection/transaction for auditing.</summary>
+    private static Task<AppRole?> ReadForAuditAsync(IDbConnection db, IDbTransaction tx, string roleId) =>
+        db.QuerySingleOrDefaultAsync<AppRole>(
+            $"{AuditSelectColumns} WHERE r.RoleId = @RoleId", new { RoleId = roleId }, tx);
 
     /// <summary>Delete-then-reinsert the AppUserRole rows for a role (n-n sync).</summary>
     private static async Task SyncUsersAsync(IDbConnection db, IDbTransaction tx, string roleId, List<string> userIds)

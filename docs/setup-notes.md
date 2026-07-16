@@ -50,6 +50,15 @@ Mirror the AppRole feature as the template.
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-15** — Added a cross-cutting **Row audit** writer (`Auditing/RowAuditWriter`,
+  `IRowAuditWriter`, `AddScoped`) that inserts **one** `RowAudit` row per change to any business table.
+  Generic via reflection (`LogInsertAsync`/`LogUpdateAsync`/`LogDeleteAsync<T>`): UserName ← current JWT
+  `userName` claim (injected `IHttpContextAccessor`, falls back to `"system"`); PrimaryKeyValues ← the
+  `pkid` property; ActionDesc ← first string property (Insert/Delete) or comma-separated changed property
+  names (Update, no row when nothing changed), truncated to 1000; DateTime ← now. Reflection logic is in
+  pure static helpers so it unit-tests without a DB/HTTP context (`RowAuditWriterTests`). Registered
+  `AddHttpContextAccessor()` in `Program.cs`. **Not yet wired into any repository** — that's the next step.
+  Detail → [backend-conventions.md](backend-conventions.md#row-audit-cross-cutting).
 - **2026-07-15** — Moved the full **Auth (JWT)** section out of `CLAUDE.md` into
   [auth.md](auth.md); `CLAUDE.md` now keeps a short auth summary + a pointer in the reference
   index. Reduces always-loaded context.

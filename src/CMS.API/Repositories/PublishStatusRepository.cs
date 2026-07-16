@@ -1,3 +1,5 @@
+using System.Data;
+using CMS.API.Auditing;
 using CMS.API.Data;
 using CMS.API.Models;
 using Dapper;
@@ -6,11 +8,15 @@ namespace CMS.API.Repositories;
 
 public class PublishStatusRepository : IPublishStatusRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private const string TableName = "PublishStatus";
 
-    public PublishStatusRepository(IDbConnectionFactory connectionFactory)
+    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IRowAuditWriter _audit;
+
+    public PublishStatusRepository(IDbConnectionFactory connectionFactory, IRowAuditWriter audit)
     {
         _connectionFactory = connectionFactory;
+        _audit = audit;
     }
 
     private const string SelectColumns = @"
@@ -79,6 +85,9 @@ public class PublishStatusRepository : IPublishStatusRepository
     public async Task<byte> CreateAsync(PublishStatusRequest request)
     {
         using var db = _connectionFactory.CreateConnection();
+        db.Open();
+        using var tx = db.BeginTransaction();
+
         await db.ExecuteAsync(
             @"INSERT INTO PublishStatus (pkid, Description, IsDraft, IsPublished, IsDiscontinued)
               VALUES (@Pkid, @Description, @IsDraft, @IsPublished, @IsDiscontinued)",
@@ -89,14 +98,29 @@ public class PublishStatusRepository : IPublishStatusRepository
                 request.IsDraft,
                 request.IsPublished,
                 request.IsDiscontinued
-            });
+            }, tx);
+
+        var created = await ReadForAuditAsync(db, tx, request.Pkid);
+        await _audit.LogInsertAsync(db, tx, TableName, created);
+
+        tx.Commit();
         return request.Pkid;
     }
 
     public async Task<bool> UpdateAsync(PublishStatusRequest request)
     {
         using var db = _connectionFactory.CreateConnection();
-        var affected = await db.ExecuteAsync(
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, request.Pkid);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
+        await db.ExecuteAsync(
             @"UPDATE PublishStatus
                  SET Description = @Description,
                      IsDraft = @IsDraft,
@@ -110,15 +134,37 @@ public class PublishStatusRepository : IPublishStatusRepository
                 request.IsDraft,
                 request.IsPublished,
                 request.IsDiscontinued
-            });
-        return affected > 0;
+            }, tx);
+
+        var after = await ReadForAuditAsync(db, tx, request.Pkid);
+        await _audit.LogUpdateAsync(db, tx, TableName, before, after);
+
+        tx.Commit();
+        return true;
     }
 
     public async Task<bool> DeleteAsync(byte pkid)
     {
         using var db = _connectionFactory.CreateConnection();
-        var affected = await db.ExecuteAsync(
-            "DELETE FROM PublishStatus WHERE pkid = @Pkid", new { Pkid = pkid });
-        return affected > 0;
+        db.Open();
+        using var tx = db.BeginTransaction();
+
+        var before = await ReadForAuditAsync(db, tx, pkid);
+        if (before is null)
+        {
+            tx.Rollback();
+            return false;
+        }
+
+        await db.ExecuteAsync("DELETE FROM PublishStatus WHERE pkid = @Pkid", new { Pkid = pkid }, tx);
+        await _audit.LogDeleteAsync(db, tx, TableName, before);
+
+        tx.Commit();
+        return true;
     }
+
+    /// <summary>Read the current row (base columns only) on the caller's connection/transaction for auditing.</summary>
+    private static Task<PublishStatus?> ReadForAuditAsync(IDbConnection db, IDbTransaction tx, byte pkid) =>
+        db.QuerySingleOrDefaultAsync<PublishStatus>(
+            $"{SelectColumns} WHERE s.pkid = @Pkid", new { Pkid = pkid }, tx);
 }
