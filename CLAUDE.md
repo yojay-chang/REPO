@@ -20,7 +20,7 @@ CMS scaffolded from SQL Server schemas in `database/*.sql`.
 - **CourseGroup** — like Partner; one `Description`; sorts `pkid DESC`.
 - **AppRole** — string PK + `pkid`; n-n users; FK-target lookup.
 - **AppUser** — like AppRole plus a bool and a server-managed SHA-256 password (`PasswordHasher`, never sent to frontend); `spec/auth/AppUser`.
-- **Course** — richest: `int` IDENTITY; INNER/LEFT FKs; 2×N-N; date/decimal/bool; inline-edit list, QR + sticky toolbar.
+- **Course** — richest: `int` IDENTITY; INNER/LEFT FKs; 2×N-N; date/decimal/bool; inline-edit list, QR + sticky toolbar, **print / Save-as-PDF** (reference for the print button).
 - **FeaturedPromoItem** — custom weekly scheduler (not list/detail/form); `spec/custom/FeaturedPromoItem`.
 
 ## Cross-Cutting Conventions — every feature MUST follow
@@ -41,6 +41,10 @@ Non-optional. This is the checklist; detail + rationale in the docs linked above
 
 **Exceptions — frontend.** Full detail → frontend-conventions § Global error handling.
 - `auth.interceptor.ts`: `status >= 500` → friendly global toast (no redirect/session-clear); **401** clears session + redirects to `/login`; 403/validation pass through. Specs touching the toast/interceptor provide `MessageService`.
+
+**Print / Save as PDF — frontend (chrome-hiding is global; the button is opt-in per page).** Full detail → frontend-conventions § Print / Save as PDF.
+- One global `@media print` block in `styles.scss` hides app chrome on **every** page — sidebar, header, toast, and the `.page-actions` toolbar (+ row-audit badge) — and defines `.no-print` / `.print-only` utilities. Every detail/form page prints toolbar-clean for free; a new page marks only its **page-specific** interactive content `.no-print` (never the toolbar).
+- To add a printout (Course detail is the reference): a `列印 / 存為 PDF` button → `print() { window.print(); }`, a `.print-only` footer, and card tuning in the page's own `@media print`. Uses `window.print()` (no PDF lib) so **CJK renders natively**; keep the QR at ≤1in (don't upscale).
 
 ## Auth (JWT) — summary
 
