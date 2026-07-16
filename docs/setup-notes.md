@@ -46,10 +46,41 @@ Mirror the AppRole feature as the template.
 3. Frontend: `core/models` + `core/services` → list/detail/form components → route in
    `app.routes.ts` → sidebar entry; add component + service specs.
 
+### Reference features — copy the closest shape
+
+- **PublishStatus** — user-assigned numeric PK; no FK/n-n; simplest.
+- **Partner** — IDENTITY PK; FK-target lookup; nav to children.
+- **CourseGroup** — like Partner; one `Description`; sorts `pkid DESC`.
+- **AppRole** — string PK + `pkid`; n-n users; FK-target lookup.
+- **AppUser** — like AppRole + a bool + server-managed SHA-256 password (never sent to frontend); `spec/auth/AppUser`.
+- **Course** — richest: `int` IDENTITY; INNER/LEFT FKs; 2×N-N; date/decimal/bool; inline-edit list, QR, sticky toolbar, print/Save-as-PDF.
+- **FeaturedPromoItem** — custom weekly scheduler (not list/detail/form); `spec/custom/FeaturedPromoItem`.
+
 ## Change log
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-16** — Compacted `CLAUDE.md` again to shrink always-loaded context: collapsed each
+  Cross-Cutting convention (row audit, exceptions, print/PDF) to one rule-line + a `→ doc § section`
+  pointer, and **moved the "Reference features — copy the closest shape" catalog out of CLAUDE.md into
+  this file** (see [§ Reference features](#reference-features--copy-the-closest-shape) above, next to
+  Adding a new entity). Lossless — every must-follow rule kept; detail lives in the linked docs.
+- **2026-07-16** — Moved print chrome-hiding fully **global**: the `@media print` block in
+  `styles.scss` now also hides the `.page-actions` toolbar (+ row-audit badge), which every detail
+  and form page wraps its toolbar in — so **every** page prints toolbar-clean for free, not just
+  Course. Dropped the now-redundant `.no-print` on course-detail's toolbar; the 相關資料 nav-link card
+  keeps its `.no-print` (page content, not chrome). Verified: Partner detail PDF hides its toolbar +
+  badge; Course PDF unchanged; 233 unit tests pass. Realizes the design's "toolbar-clean for free"
+  premise. Detail → frontend-conventions § Print / Save as PDF.
+- **2026-07-16** — Added **Print / Save as PDF** on the Course detail page. A 列印 / 存為 PDF button
+  calls `window.print()` (browser dialog → "Save as PDF"); no PDF library, so Traditional Chinese
+  renders natively via the system CJK font. Chrome-hiding is global (`src/styles.scss` `@media print`:
+  hides sidebar/header/toast + the `.page-actions` toolbar, collapses the shell full-width,
+  `print-color-adjust: exact`, `@page` margins, `.no-print`/`.print-only` utilities). Course detail
+  adds the button, a `.print-only` date footer, per-page card tuning (`break-inside: avoid`), and marks
+  the 相關資料 nav-link card `no-print`; the `shared/qr-code` component hides its own download button in
+  print (QR is a 240px PNG — printed at natural size, not upscaled). Detail → frontend-conventions
+  § Print / Save as PDF. Tests: button renders + `print()` calls `window.print()`.
 - **2026-07-16** — Reorganized `CLAUDE.md` into a compact index (~133 → ~54 lines): replaced the
   duplicated Row-audit / Exception-handling prose with a single **Cross-Cutting Conventions** checklist
   (backend + frontend must-follows) that breadcrumbs to the detailed docs, kept a one-paragraph Auth

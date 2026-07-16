@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
@@ -38,6 +39,14 @@ export class CourseDetail implements OnInit {
     const c = this.course();
     return c ? `${COURSE_SITE_BASE}/${c.pkid}/${c.courseId}` : '';
   });
+
+  /** Stamp shown in the print-only footer band (matches the UI's yyyy-MM-dd style). */
+  readonly printDate = formatDate(new Date(), 'yyyy-MM-dd', 'en-US');
+
+  /** Open the browser print dialog; the user chooses "Save as PDF" as the destination. */
+  print(): void {
+    window.print();
+  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
