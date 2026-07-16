@@ -17,6 +17,14 @@ public interface IAuthRepository
     Task<string> GetSigningKeyAsync();
 
     /// <summary>
+    /// SHA-256 of the system default password (<c>SysConfig['appConfig'].defaultPassword</c>, read at
+    /// runtime). Compare a stored <c>PasswordHash</c> against this to detect an account that still uses
+    /// the default — i.e. a first login or a freshly Admin-reset account. The plaintext never leaves the
+    /// repository; only the hash is returned.
+    /// </summary>
+    Task<string> GetDefaultPasswordHashAsync();
+
+    /// <summary>
     /// Update only the <c>UserName</c> of <paramref name="userId"/> (self-service profile edit).
     /// The caller is responsible for supplying the authenticated user's id — never a client-provided one.
     /// </summary>

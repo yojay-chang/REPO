@@ -10,7 +10,7 @@ CMS scaffolded from SQL Server schemas in `database/*.sql`.
 - Commands, setup, adding an entity, changelog → [docs/setup-notes.md](docs/setup-notes.md)
 - Backend core + recipes (PK variants, N-N, FK labels, `date` handler, **row audit**, **exception middleware**) → [docs/backend-conventions.md](docs/backend-conventions.md)
 - Frontend core + recipes (widgets, inline-edit, QR, sticky toolbar, nav, **row-audit badge**, **error interceptor**) → [docs/frontend-conventions.md](docs/frontend-conventions.md)
-- Auth — JWT login/profile/change-password/admin reset, guards, interceptor, tests → [docs/auth.md](docs/auth.md)
+- Auth — JWT login/profile/change-password/admin reset, **forced first-login password change**, guards, interceptor, tests → [docs/auth.md](docs/auth.md)
 - Per-entity specs → `spec/**/{Entity}.md`
 
 ## Reference features — copy the closest shape
@@ -40,11 +40,11 @@ Non-optional. This is the checklist; detail + rationale in the docs linked above
 - Global `ExceptionHandlingMiddleware` (registered first) turns any unhandled error into a safe generic **500**, logs full detail **server-side only** — never leak stack/SQL. **Do not** add per-controller try/catch for unexpected errors; leave **401/403/validation-400** untouched (set without throwing).
 
 **Exceptions — frontend.** Full detail → frontend-conventions § Global error handling.
-- `auth.interceptor.ts`: `status >= 500` → friendly global toast (no redirect/session-clear); **401** clears session + redirects to `/login`; 403/validation pass through. Specs touching the toast/interceptor provide `MessageService`.
+- `auth.interceptor.ts`: `status >= 500` → friendly global toast (no redirect/session-clear); **401** clears session + redirects to `/login`; **403 with `code: "password_change_required"`** → redirect to `/change-password`, session kept (see Auth summary); other 403s + validation pass through. Specs touching the toast/interceptor provide `MessageService`.
 
 ## Auth (JWT) — summary
 
-Login + JWT bearer; signing key `symmetricSecurityKey` (≥32 bytes) in `SysConfig['appConfig']`, read at runtime. Global `FallbackPolicy` protects every controller; `AuthController` is `[AllowAnonymous]`. `/api/Auth`: `login`, `profile`, `change-password` (self), `reset-password` (Admin-only via JWT role claim). Passwords SHA-256; no hash on the wire. Frontend keeps `{userId,userName,accessToken}` in session storage, decodes roles/`isAdmin`, guards routes, hides **系統管理 Admin** nav unless admin. Detail → [docs/auth.md](docs/auth.md).
+Login + JWT bearer; signing key `symmetricSecurityKey` (≥32 bytes) in `SysConfig['appConfig']`, read at runtime. Global `FallbackPolicy` protects every controller; `AuthController` is `[AllowAnonymous]`. `/api/Auth`: `login`, `profile`, `change-password` (self), `reset-password` (Admin-only via JWT role claim). Passwords SHA-256; no hash on the wire. Frontend keeps `{userId,userName,accessToken}` in session storage, decodes roles/`isAdmin`, guards routes, hides **系統管理 Admin** nav unless admin. **Forced first-login password change**: a stored hash equal to `SHA256(appConfig.defaultPassword)` — a new or Admin-reset account — yields a token carrying the `mustChangePassword` claim; `PasswordChangeRequiredMiddleware` 403s (`code: "password_change_required"`) every `/api` path except login/change-password/profile until `change-password` returns a fresh token. Detail → [docs/auth.md](docs/auth.md).
 
 ## gstack
 

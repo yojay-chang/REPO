@@ -14,6 +14,13 @@ export const routes: Routes = [
     canActivateChild: [authChildGuard],
     children: [
       { path: '', redirectTo: 'app-roles', pathMatch: 'full' },
+      // Forced first-login password change. Guarded like everything else (a token is required), but the
+      // guard *pins* a default-password user here and keeps everyone else out.
+      {
+        path: 'change-password',
+        loadComponent: () =>
+          import('./features/change-password/change-password').then((m) => m.ChangePassword),
+      },
       {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile').then((m) => m.Profile),

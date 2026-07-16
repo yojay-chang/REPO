@@ -109,6 +109,11 @@ app.UseSwaggerUI(options =>
 app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication/authorization so context.User is populated: a token still on the default password
+// may only reach the change-password flow — everything else under /api gets 403 until it is changed.
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
+
 app.MapControllers();
 
 app.Run();

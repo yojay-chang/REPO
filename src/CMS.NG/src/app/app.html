@@ -1,6 +1,6 @@
 <p-toast [key]="globalToastKey" position="top-right" />
 
-@if (auth.isAuthenticated()) {
+@if (showShell()) {
   <div class="app-shell" [class.collapsed]="collapsed()">
     <aside class="layout-sidebar">
       <div class="sidebar-header">

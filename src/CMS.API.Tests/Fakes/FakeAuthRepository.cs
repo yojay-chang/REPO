@@ -49,6 +49,17 @@ public class FakeAuthRepository : IAuthRepository
             PasswordHash = PasswordHasher.Sha256(NinaPassword),
             PasswordUpdatedTime = new DateTime(2026, 1, 1, 9, 0, 0),
             RoleIds = ["User"]
+        },
+        // Never signed in — still on the system default password. Login must flag MustChangePassword and
+        // issue a restricted token that can reach nothing but the change-password flow.
+        new AuthCredential
+        {
+            UserId = "dana",
+            UserName = "Dana Chen",
+            IsActive = true,
+            PasswordHash = PasswordHasher.Sha256(DefaultPassword),
+            PasswordUpdatedTime = null,
+            RoleIds = ["User"]
         }
     ];
 
@@ -56,6 +67,9 @@ public class FakeAuthRepository : IAuthRepository
         => Task.FromResult(_credentials.FirstOrDefault(c => c.UserId == userId));
 
     public Task<string> GetSigningKeyAsync() => Task.FromResult(SigningKey);
+
+    public Task<string> GetDefaultPasswordHashAsync()
+        => Task.FromResult(PasswordHasher.Sha256(DefaultPassword));
 
     public Task UpdateUserNameAsync(string userId, string userName)
     {

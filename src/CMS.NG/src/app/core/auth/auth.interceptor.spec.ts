@@ -93,6 +93,36 @@ describe('authInterceptor', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+  it('on a 403 that requires a password change, redirects to /change-password and keeps the session', () => {
+    seedToken('abc.def.ghi');
+
+    http.get(`${environment.apiUrl}/app-roles`).subscribe({ next: () => {}, error: () => {} });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/app-roles`);
+    req.flush(
+      { message: 'You must change your default password before continuing.', code: 'password_change_required' },
+      { status: 403, statusText: 'Forbidden' },
+    );
+
+    expect(router.navigate).toHaveBeenCalledWith(['/change-password']);
+    // The session is still valid — the token just cannot reach anything else yet.
+    expect(sessionStorage.getItem('cms.auth')).not.toBeNull();
+    expect(messageService.add).not.toHaveBeenCalled();
+  });
+
+  it('lets an ordinary 403 pass through untouched', () => {
+    seedToken('abc.def.ghi');
+
+    http.get(`${environment.apiUrl}/app-roles`).subscribe({ next: () => {}, error: () => {} });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/app-roles`);
+    req.flush({ message: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(messageService.add).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('cms.auth')).not.toBeNull();
+  });
+
   it('on a 500 with no message body shows a generic fallback toast', () => {
     seedToken('abc.def.ghi');
 
