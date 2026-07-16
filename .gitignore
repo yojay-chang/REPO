@@ -30,3 +30,4 @@ Thumbs.db
 # ---- Env / secrets ----
 *.local.json
 appsettings.*.local.json
+.gstack/
