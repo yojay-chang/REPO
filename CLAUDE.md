@@ -9,7 +9,7 @@ CMS scaffolded from SQL Server schemas in `database/*.sql`.
 
 - Commands, setup, adding an entity, changelog → [docs/setup-notes.md](docs/setup-notes.md)
 - Backend core + recipes (PK variants, N-N, FK labels, `date` handler, **row audit**, **exception middleware**) → [docs/backend-conventions.md](docs/backend-conventions.md)
-- Frontend core + recipes (widgets, inline-edit, QR, sticky toolbar, nav, **row-audit badge**, **error interceptor**) → [docs/frontend-conventions.md](docs/frontend-conventions.md)
+- Frontend core + recipes (widgets, inline-edit, QR, sticky toolbar, nav, **row-audit badge**, **error interceptor**, **print/PDF**) → [docs/frontend-conventions.md](docs/frontend-conventions.md)
 - Auth — JWT login/profile/change-password/admin reset, guards, interceptor, tests → [docs/auth.md](docs/auth.md)
 - Per-entity specs → `spec/**/{Entity}.md`
 

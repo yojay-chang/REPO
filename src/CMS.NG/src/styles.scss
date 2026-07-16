@@ -16,3 +16,58 @@ body {
   background: var(--p-surface-100, #f1f5f9);
   color: var(--p-text-color, #1f2937);
 }
+
+/* Print utilities — hidden on screen, revealed only when printing. */
+.print-only {
+  display: none;
+}
+
+/*
+ * Global print rules. Any page can trigger `window.print()` (browser dialog →
+ * "Save as PDF"); these strip the app chrome so the page content prints clean.
+ * Traditional Chinese renders via the system CJK font — no embedded font needed.
+ */
+@media print {
+  /* Hide app chrome: sidebar nav, top header, and any toast overlay. */
+  .layout-sidebar,
+  .app-header,
+  p-toast,
+  .p-toast {
+    display: none !important;
+  }
+
+  /* Collapse the flex shell so content prints full-width with @page margins. */
+  .app-shell {
+    display: block !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  .content {
+    overflow: visible !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Keep colored elements (PrimeNG p-tag severities, etc.) from printing blank. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Utility hooks usable by any component. */
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+  }
+}

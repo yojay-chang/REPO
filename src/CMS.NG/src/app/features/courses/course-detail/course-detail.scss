@@ -89,3 +89,26 @@
 .empty {
   color: #94a3b8;
 }
+
+/* Print / Save-as-PDF layout. Chrome-hiding (sidebar, header, toolbars) is handled
+ * by the global @media print block in styles.scss; this tunes the course cards for
+ * paper. `.no-print` on the toolbar and 相關資料 card removes the interactive bits. */
+@media print {
+  .page-card {
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Keep a label and its value together; let long cards flow across pages. */
+  .detail-field {
+    break-inside: avoid;
+  }
+
+  .print-footer {
+    margin-top: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+}

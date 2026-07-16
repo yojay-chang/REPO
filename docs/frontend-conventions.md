@@ -73,6 +73,34 @@ Reusable `shared/qr-code` (`QrCode`) component + `QrCodeService` wrapping the `q
 The parent passes a pre-built `value` URL + `title` + `fileName`; the component encodes it to a PNG
 `data:` URL, shows the title, and downloads the PNG on demand. Used on the Course detail page.
 
+## Print / Save as PDF
+
+Detail pages get a **列印 / 存為 PDF** button that calls `window.print()`; the user picks
+"Save as PDF" in the browser's own dialog. This is deliberately **not** a PDF library —
+the browser renders Traditional Chinese natively (crisp, selectable text, zero embedded
+CJK font), which jsPDF/html2canvas can't do without a multi-MB font and image rasterization.
+
+- **Global chrome-hiding** lives in `src/styles.scss` under one `@media print` block: hides
+  the sidebar (`.layout-sidebar`), header (`.app-header`), and toast (`p-toast`), collapses
+  the flex `.app-shell` to full width, sets `@page` margins, and forces
+  `print-color-adjust: exact` so PrimeNG `p-tag` severity colors don't print blank. It also
+  defines two utilities: **`.no-print`** (hide in print) and **`.print-only`** (hidden on
+  screen via a base rule, shown in print). Every detail page gets this for free.
+- **Per page** (Course detail is the reference): the component adds `print() { window.print(); }`
+  and a `printDate` (`formatDate(new Date(), 'yyyy-MM-dd', 'en-US')`). The template puts the
+  button in the `.page-actions` toolbar and marks that toolbar `no-print`; marks any
+  interactive-only card `no-print` (Course hides the 相關資料 nav-link card); and adds a
+  `.print-only` footer band (date + title + code). The page's own `@media print` (in its
+  `.scss`) tunes cards for paper (`break-inside: avoid` on `.detail-field` so a label never
+  splits from its value).
+- **QR on paper is the payoff** (scan → live record). The `shared/qr-code` component's own
+  `@media print` drops its 下載 QR Code button + tile frame. The QR is a **240px PNG** — print
+  it at natural size, never upscale (it blurs); switch `QrCodeService` to `QRCode.toString(…,
+  {type:'svg'})` only if a larger QR is ever needed.
+- **No real page numbers** in pure CSS (Chrome/Edge lack `@page` margin-box counters) — rely
+  on the browser dialog's own header/footer toggle, or the fixed date band. Tests: assert the
+  button renders and `print()` calls `window.print()` (spy on `window.print`).
+
 ## Row-audit history badge
 
 Reusable standalone `shared/row-audit-badge` (`RowAuditBadge`) with signal inputs `tableName` (the

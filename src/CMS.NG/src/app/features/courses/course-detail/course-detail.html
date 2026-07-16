@@ -7,10 +7,11 @@
       <span class="subtitle">{{ course()!.title }}</span>
     }
   </div>
-  <div class="page-actions">
+  <div class="page-actions no-print">
     <app-row-audit-badge [tableName]="'Course'" [pkid]="course()?.pkid ?? null" />
     <p-button label="返回" icon="pi pi-arrow-left" severity="secondary" (onClick)="back()" />
     @if (course()) {
+      <p-button label="列印 / 存為 PDF" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
       <p-button label="編輯" icon="pi pi-pencil" severity="info" (onClick)="edit()" />
     }
   </div>
@@ -161,7 +162,7 @@
     }
   </div>
 
-  <div class="page-card">
+  <div class="page-card no-print">
     <h2 class="section-title">相關資料</h2>
     <div class="link-actions">
       <p-button label="檢視原廠" icon="pi pi-building" severity="secondary" [outlined]="true" (onClick)="viewPartner()" />
@@ -173,5 +174,9 @@
       <p-button label="查看相關連結" icon="pi pi-link" severity="secondary" [outlined]="true" (onClick)="viewRelatedLinks()" />
       <p-button label="查看熱門課程" icon="pi pi-star" severity="secondary" [outlined]="true" (onClick)="viewHotCourses()" />
     </div>
+  </div>
+
+  <div class="print-footer print-only">
+    列印日期 {{ printDate }} ｜ {{ c.title }}（{{ c.courseId }}）
   </div>
 }

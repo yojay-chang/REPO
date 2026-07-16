@@ -50,6 +50,16 @@ Mirror the AppRole feature as the template.
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-16** — Added **Print / Save as PDF** on the Course detail page. A 列印 / 存為 PDF button
+  calls `window.print()` (browser dialog → "Save as PDF"); no PDF library, so Traditional Chinese
+  renders natively via the system CJK font. Chrome-hiding is global (`src/styles.scss` `@media print`:
+  hides sidebar/header/toast, collapses the shell full-width, `print-color-adjust: exact`, `@page`
+  margins, `.no-print`/`.print-only` utilities), so every detail page inherits it. Course detail adds
+  the button (toolbar marked `no-print`), a `.print-only` date footer, per-page card tuning
+  (`break-inside: avoid`), and marks the 相關資料 nav-link card `no-print`; the `shared/qr-code`
+  component hides its own download button in print (QR is a 240px PNG — printed at natural size, not
+  upscaled). Detail → frontend-conventions § Print / Save as PDF. Tests: button renders + `print()`
+  calls `window.print()`.
 - **2026-07-16** — Reorganized `CLAUDE.md` into a compact index (~133 → ~54 lines): replaced the
   duplicated Row-audit / Exception-handling prose with a single **Cross-Cutting Conventions** checklist
   (backend + frontend must-follows) that breadcrumbs to the detailed docs, kept a one-paragraph Auth
