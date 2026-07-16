@@ -7,21 +7,11 @@ CMS scaffolded from SQL Server schemas in `database/*.sql`.
 
 ## Docs — read the relevant one before building/modifying (keep them updated)
 
-- Commands, setup, adding an entity, changelog → [setup-notes.md](docs/setup-notes.md)
+- Commands, setup, adding an entity, **reference features to copy**, changelog → [setup-notes.md](docs/setup-notes.md)
 - Backend recipes: PK variants, N-N, FK labels, `date` handler, **row audit**, **exception middleware** → [backend-conventions.md](docs/backend-conventions.md)
 - Frontend recipes: widgets, inline-edit, QR, sticky toolbar, nav, **row-audit badge**, **error interceptor**, **print/PDF** → [frontend-conventions.md](docs/frontend-conventions.md)
 - Auth: JWT login/profile/change-password/admin reset, guards, interceptor → [auth.md](docs/auth.md)
 - Per-entity specs → `spec/**/{Entity}.md`
-
-## Reference features — copy the closest shape
-
-- **PublishStatus** — user-assigned numeric PK; no FK/n-n; simplest.
-- **Partner** — IDENTITY PK; FK-target lookup; nav to children.
-- **CourseGroup** — like Partner; one `Description`; sorts `pkid DESC`.
-- **AppRole** — string PK + `pkid`; n-n users; FK-target lookup.
-- **AppUser** — like AppRole + a bool + server-managed SHA-256 password (never sent to frontend); `spec/auth/AppUser`.
-- **Course** — richest: `int` IDENTITY; INNER/LEFT FKs; 2×N-N; date/decimal/bool; inline-edit list, QR, sticky toolbar, print/Save-as-PDF.
-- **FeaturedPromoItem** — custom weekly scheduler (not list/detail/form); `spec/custom/FeaturedPromoItem`.
 
 ## Cross-Cutting Conventions — every feature MUST follow
 
