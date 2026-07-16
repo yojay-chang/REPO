@@ -81,18 +81,23 @@ the browser renders Traditional Chinese natively (crisp, selectable text, zero e
 CJK font), which jsPDF/html2canvas can't do without a multi-MB font and image rasterization.
 
 - **Global chrome-hiding** lives in `src/styles.scss` under one `@media print` block: hides
-  the sidebar (`.layout-sidebar`), header (`.app-header`), and toast (`p-toast`), collapses
-  the flex `.app-shell` to full width, sets `@page` margins, and forces
-  `print-color-adjust: exact` so PrimeNG `p-tag` severity colors don't print blank. It also
+  the sidebar (`.layout-sidebar`), header (`.app-header`), toast (`p-toast`), **and the
+  `.page-actions` toolbar** — which wraps 返回/編輯/etc. plus the row-audit badge on *every*
+  detail and form page, so no interactive toolbar or badge prints on any page. It also
+  collapses the flex `.app-shell` to full width, sets `@page` margins, and forces
+  `print-color-adjust: exact` so PrimeNG `p-tag` severity colors don't print blank, and
   defines two utilities: **`.no-print`** (hide in print) and **`.print-only`** (hidden on
-  screen via a base rule, shown in print). Every detail page gets this for free.
+  screen via a base rule, shown in print). **Every detail page prints toolbar-clean for
+  free** — a new page needs `.no-print` only on page-specific interactive content, never on
+  its `.page-actions` toolbar.
 - **Per page** (Course detail is the reference): the component adds `print() { window.print(); }`
   and a `printDate` (`formatDate(new Date(), 'yyyy-MM-dd', 'en-US')`). The template puts the
-  button in the `.page-actions` toolbar and marks that toolbar `no-print`; marks any
-  interactive-only card `no-print` (Course hides the 相關資料 nav-link card); and adds a
-  `.print-only` footer band (date + title + code). The page's own `@media print` (in its
-  `.scss`) tunes cards for paper (`break-inside: avoid` on `.detail-field` so a label never
-  splits from its value).
+  button in the `.page-actions` toolbar (hidden globally in print); marks any
+  interactive-only card `no-print` (Course hides the 相關資料 nav-link card, since `.page-card`
+  is shared with the data cards and can't be hidden globally); and adds a `.print-only`
+  footer band (date + title + code). The page's own `@media print` (in its `.scss`) tunes
+  cards for paper (`break-inside: avoid` on `.detail-field` so a label never splits from its
+  value).
 - **QR on paper is the payoff** (scan → live record). The `shared/qr-code` component's own
   `@media print` drops its 下載 QR Code button + tile frame. The QR is a **240px PNG** — print
   it at natural size, never upscale (it blurs); switch `QrCodeService` to `QRCode.toString(…,

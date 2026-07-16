@@ -90,9 +90,10 @@
   color: #94a3b8;
 }
 
-/* Print / Save-as-PDF layout. Chrome-hiding (sidebar, header, toolbars) is handled
- * by the global @media print block in styles.scss; this tunes the course cards for
- * paper. `.no-print` on the toolbar and 相關資料 card removes the interactive bits. */
+/* Print / Save-as-PDF layout. Chrome-hiding (sidebar, header, toast, and the
+ * `.page-actions` toolbar + row-audit badge) is handled by the global @media print
+ * block in styles.scss; this tunes the course cards for paper. `.no-print` on the
+ * page-specific 相關資料 nav-link card removes it from the printout. */
 @media print {
   .page-card {
     box-shadow: none;

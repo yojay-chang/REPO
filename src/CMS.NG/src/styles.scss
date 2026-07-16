@@ -28,11 +28,14 @@ body {
  * Traditional Chinese renders via the system CJK font — no embedded font needed.
  */
 @media print {
-  /* Hide app chrome: sidebar nav, top header, and any toast overlay. */
+  /* Hide app chrome: sidebar nav, top header, toast overlay, and every page's
+   * action toolbar (`.page-actions` wraps 返回/編輯/etc. + the row-audit badge on
+   * every detail/form page), so no interactive chrome prints on any page. */
   .layout-sidebar,
   .app-header,
   p-toast,
-  .p-toast {
+  .p-toast,
+  .page-actions {
     display: none !important;
   }
 
