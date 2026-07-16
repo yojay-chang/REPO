@@ -50,6 +50,39 @@ Mirror the AppRole feature as the template.
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-16** — Reorganized `CLAUDE.md` into a compact index (~133 → ~54 lines): replaced the
+  duplicated Row-audit / Exception-handling prose with a single **Cross-Cutting Conventions** checklist
+  (backend + frontend must-follows) that breadcrumbs to the detailed docs, kept a one-paragraph Auth
+  summary, and trimmed the exhaustive gstack skill list (skills are auto-discovered). All detail is
+  single-sourced in `docs/*`; nothing lost. Reduces always-loaded context.
+- **2026-07-16** — Added centralized **exception handling**. Backend `Middleware/ExceptionHandlingMiddleware`
+  (registered **first**, right after `Build()`) catches any unhandled exception (controllers, repositories,
+  Dapper/SQL), logs full detail **server-side only** via `ILogger`, and returns ONE safe response: HTTP
+  **500** `{ "message": "An unexpected error occurred." }` (`GenericMessage`) — no stack/SQL/connection
+  detail on the wire (rethrows only if the response already started). Reacts only to *thrown* exceptions, so
+  **401/403/validation-400** (set without throwing) are unchanged. Frontend `core/auth/auth.interceptor.ts`
+  surfaces `status >= 500` as a friendly **toast** (globally-provided `MessageService`, dedicated
+  `GLOBAL_TOAST_KEY = 'global'`, bilingual fallback) without clearing the session; **401** still clears
+  session + redirects to `/login`; 403/validation pass through. `App` shell hosts an app-level
+  `<p-toast [key]="global">` outside the authenticated `@if`. Tests: `ExceptionHandlingTests`
+  (+ `ExceptionHandlingApiFactory` / `ThrowingAppRoleRepository`), `auth.interceptor.spec`. Detail →
+  [backend-conventions.md](backend-conventions.md#global-exception-handling) +
+  [frontend-conventions.md](frontend-conventions.md#global-error-handling-interceptor).
+- **2026-07-16** — **Wired Row audit into all seven CRUD repositories** (PublishStatus, Partner,
+  CourseGroup, AppRole, AppUser, Course, FeaturedPromoItem) — completing the writer added 07-15. Each
+  mutation now runs in a **transaction** with the audit INSERT on the **same connection/transaction**
+  (last statement before `Commit()`), so a rolled-back/failed change leaves no audit row; Update reads the
+  row before + after (accurate changed-column list; unchanged update writes none), Delete reads before
+  (first string column survives). Each repo has a private `ReadForAuditAsync` selecting **base-table
+  columns only** (no FK labels / n-n / counts). Added the **read side**: `IRowAuditRepository` /
+  `RowAuditRepository` + `RowAuditController` (`GET /api/rowaudit?tableName={T}&pkid={n}`, newest first,
+  empty `tableName` → 400), and the reusable standalone frontend **`RowAuditBadge`**
+  (`shared/row-audit-badge`, inputs `tableName` + numeric `pkid`) dropped into the `.page-actions` toolbar
+  of every detail + edit page of the six pkid-keyed entities (FeaturedPromoItem has no single-record page).
+  Host-page specs add `provideHttpClient()` + `provideHttpClientTesting()`. Tests: `RowAuditRetrofitTests`,
+  `RowAuditRepositoryTests`, `RowAuditControllerTests`, `RowAuditBadge` spec. Detail →
+  [backend-conventions.md](backend-conventions.md#row-audit-cross-cutting) +
+  [frontend-conventions.md](frontend-conventions.md#row-audit-history-badge).
 - **2026-07-15** — Added a cross-cutting **Row audit** writer (`Auditing/RowAuditWriter`,
   `IRowAuditWriter`, `AddScoped`) that inserts **one** `RowAudit` row per change to any business table.
   Generic via reflection (`LogInsertAsync`/`LogUpdateAsync`/`LogDeleteAsync<T>`): UserName ← current JWT
