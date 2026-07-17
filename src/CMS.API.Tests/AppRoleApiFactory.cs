@@ -1,29 +1,19 @@
-using CMS.API.Repositories;
-using CMS.API.Tests.Fakes;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace CMS.API.Tests;
 
 /// <summary>
-/// Boots the real API pipeline (routing, model binding, controllers) but swaps the
-/// data repositories for in-memory fakes so no SQL Server is required.
-/// A fresh factory per test class gives each class an isolated dataset.
+/// Factory for controller-behavior tests. Relaxes the global auth requirement (clears the fallback
+/// policy) so these tests can exercise controller logic without minting a token per request.
+/// Auth enforcement itself is covered separately by <see cref="AuthorizationApiFactory"/>.
 /// </summary>
-public class AppRoleApiFactory : WebApplicationFactory<Program>
+public class AppRoleApiFactory : FakeRepositoryApiFactory
 {
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override void ConfigureAuthorization(IServiceCollection services)
     {
-        builder.ConfigureServices(services =>
-        {
-            services.RemoveAll<IAppRoleRepository>();
-            services.RemoveAll<ILookupRepository>();
-
-            // Singleton so state persists across requests within one factory instance.
-            services.AddSingleton<IAppRoleRepository, FakeAppRoleRepository>();
-            services.AddSingleton<ILookupRepository, FakeLookupRepository>();
-        });
+        // Runs after Program's AddAuthorization(...) Configure, so the null wins → anonymous allowed.
+        services.PostConfigure<AuthorizationOptions>(options => options.FallbackPolicy = null);
     }
 }

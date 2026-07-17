@@ -1,0 +1,49 @@
+.inline-form {
+  border: 2px solid var(--p-content-border-color);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  background: var(--p-content-background);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.inline-field {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  align-items: center;
+  gap: 0.5rem;
+
+  label {
+    font-weight: 600;
+    color: var(--p-text-color);
+  }
+
+  input,
+  p-autocomplete {
+    width: 100%;
+  }
+}
+
+.error {
+  color: var(--p-red-500);
+  padding-left: 7rem;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 1.5rem;
+  padding-left: 7rem;
+  margin-top: 0.25rem;
+}
+
+.link-action {
+  color: var(--p-primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}

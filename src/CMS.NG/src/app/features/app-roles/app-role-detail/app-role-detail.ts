@@ -8,10 +8,11 @@ import { MessageService } from 'primeng/api';
 
 import { AppRole, AppUserLookup } from '@core/models/app-role.model';
 import { AppRoleService } from '@core/services/app-role.service';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 @Component({
   selector: 'app-app-role-detail',
-  imports: [ButtonModule, TagModule, ToastModule],
+  imports: [ButtonModule, TagModule, ToastModule, RowAuditBadge],
   templateUrl: './app-role-detail.html',
   styleUrl: './app-role-detail.scss',
 })

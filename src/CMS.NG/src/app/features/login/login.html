@@ -1,0 +1,47 @@
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="logo-mark">U</span>
+      <span class="logo-text">UWA CMS</span>
+    </div>
+    <h1 class="login-title">登入 Sign in</h1>
+    <p class="login-subtitle">請使用系統帳號登入</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+      <div class="field">
+        <label for="userId">使用者代碼 User ID</label>
+        <input
+          pInputText
+          id="userId"
+          formControlName="userId"
+          autocomplete="username"
+          [attr.aria-invalid]="form.controls.userId.invalid && form.controls.userId.touched"
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">密碼 Password</label>
+        <p-password
+          inputId="password"
+          formControlName="password"
+          [feedback]="false"
+          [toggleMask]="true"
+          styleClass="w-full"
+          [inputStyle]="{ width: '100%' }"
+          autocomplete="current-password"
+        />
+      </div>
+
+      @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="w-full" />
+      }
+
+      <p-button
+        type="submit"
+        label="登入 Login"
+        styleClass="w-full login-submit"
+        [loading]="submitting()"
+      />
+    </form>
+  </div>
+</div>

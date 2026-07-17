@@ -1,0 +1,141 @@
+<p-toast />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>個人資料 My Profile</h1>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="page-card">
+  <h2 class="section-title">帳號資料</h2>
+
+  <div class="detail-grid">
+    <div class="detail-field">
+      <span class="label">使用者代碼 User ID</span>
+      <span class="value" data-testid="profile-user-id">{{ userId() }}</span>
+    </div>
+
+    <div class="detail-field">
+      <label class="label" for="userName">使用者名稱 User Name</label>
+      <input
+        pInputText
+        id="userName"
+        formControlName="userName"
+        maxlength="200"
+        [attr.aria-invalid]="form.controls.userName.invalid && form.controls.userName.touched"
+      />
+      @if (form.controls.userName.invalid && form.controls.userName.touched) {
+        <small class="field-error">使用者名稱為必填。</small>
+      }
+    </div>
+
+    <div class="detail-field full">
+      <span class="label">角色 Roles</span>
+      @if (roles().length) {
+        <div class="chips" data-testid="profile-roles">
+          @for (role of roles(); track role) {
+            <p-tag [value]="role" severity="info" />
+          }
+        </div>
+      } @else {
+        <span class="empty" data-testid="profile-roles">尚未指派角色</span>
+      }
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <p-button
+      type="submit"
+      label="儲存 Save"
+      icon="pi pi-check"
+      [loading]="saving()"
+      [disabled]="form.invalid"
+    />
+  </div>
+</form>
+
+<form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="page-card">
+  <h2 class="section-title">變更密碼 Change Password</h2>
+
+  <div class="password-grid">
+    <div class="detail-field">
+      <label class="label" for="currentPassword">目前密碼 Current Password</label>
+      <p-password
+        inputId="currentPassword"
+        formControlName="currentPassword"
+        [feedback]="false"
+        [toggleMask]="true"
+        styleClass="w-full"
+        [inputStyle]="{ width: '100%' }"
+        autocomplete="current-password"
+      />
+      @if (
+        passwordForm.controls.currentPassword.invalid && passwordForm.controls.currentPassword.touched
+      ) {
+        <small class="field-error">請輸入目前密碼。Current password is required.</small>
+      }
+    </div>
+
+    <div class="detail-field">
+      <label class="label" for="newPassword">新密碼 New Password</label>
+      <p-password
+        inputId="newPassword"
+        formControlName="newPassword"
+        [feedback]="false"
+        [toggleMask]="true"
+        styleClass="w-full"
+        [inputStyle]="{ width: '100%' }"
+        autocomplete="new-password"
+      />
+      @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.errors) {
+        @if (passwordForm.controls.newPassword.errors['required']) {
+          <small class="field-error">請輸入新密碼。New password is required.</small>
+        } @else if (passwordForm.controls.newPassword.errors['complexity']) {
+          <small class="field-error">{{ complexityMessage }}</small>
+        }
+      } @else {
+        <small class="field-hint">{{ complexityMessage }}</small>
+      }
+    </div>
+
+    <div class="detail-field">
+      <label class="label" for="confirmNewPassword">確認新密碼 Confirm New Password</label>
+      <p-password
+        inputId="confirmNewPassword"
+        formControlName="confirmNewPassword"
+        [feedback]="false"
+        [toggleMask]="true"
+        styleClass="w-full"
+        [inputStyle]="{ width: '100%' }"
+        autocomplete="new-password"
+      />
+      @if (
+        passwordForm.controls.confirmNewPassword.touched &&
+        passwordForm.controls.confirmNewPassword.errors?.['required']
+      ) {
+        <small class="field-error">請再次輸入新密碼。Please confirm the new password.</small>
+      } @else if (
+        passwordForm.controls.confirmNewPassword.touched &&
+        passwordForm.errors?.['mismatch']
+      ) {
+        <small class="field-error" data-testid="password-mismatch">
+          新密碼與確認密碼不一致。New password and confirmation do not match.
+        </small>
+      }
+    </div>
+  </div>
+
+  @if (passwordError()) {
+    <small class="field-error" data-testid="password-server-error">{{ passwordError() }}</small>
+  }
+
+  <div class="form-actions">
+    <p-button
+      type="submit"
+      label="變更密碼 Change Password"
+      icon="pi pi-lock"
+      [loading]="changingPassword()"
+      [disabled]="passwordForm.invalid"
+    />
+  </div>
+</form>

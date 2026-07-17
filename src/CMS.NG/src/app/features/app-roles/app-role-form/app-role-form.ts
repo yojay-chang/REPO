@@ -12,6 +12,7 @@ import { MessageService } from 'primeng/api';
 
 import { AppRoleRequest, AppUserLookup } from '@core/models/app-role.model';
 import { AppRoleService } from '@core/services/app-role.service';
+import { RowAuditBadge } from '@app/shared/row-audit-badge/row-audit-badge';
 
 interface UserOption {
   userId: string;
@@ -28,6 +29,7 @@ interface UserOption {
     TextareaModule,
     MultiSelectModule,
     ToastModule,
+    RowAuditBadge,
   ],
   templateUrl: './app-role-form.html',
   styleUrl: './app-role-form.scss',
@@ -43,6 +45,9 @@ export class AppRoleForm implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly userOptions = signal<UserOption[]>([]);
+
+  /** The edited record's numeric pkid (null when creating) — drives the row-audit history badge. */
+  readonly recordPkid = signal<number | null>(null);
 
   private roleId: string | null = null;
 
@@ -72,6 +77,7 @@ export class AppRoleForm implements OnInit {
             userIds: role.userIds,
           });
           this.form.controls.roleId.disable();
+          this.recordPkid.set(role.pkid);
         }
         this.loading.set(false);
       },

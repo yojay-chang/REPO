@@ -1,0 +1,43 @@
+<p-toast />
+
+<div class="page-card header-card">
+  <div class="page-title">
+    <h1>檢視課程群組</h1>
+    @if (courseGroup()) {
+      <span class="subtitle">{{ courseGroup()!.description }}</span>
+    }
+  </div>
+  <div class="page-actions">
+    <app-row-audit-badge [tableName]="'CourseGroup'" [pkid]="courseGroup()?.pkid ?? null" />
+    <p-button label="返回" icon="pi pi-arrow-left" severity="secondary" (onClick)="back()" />
+    @if (courseGroup()) {
+      <p-button label="編輯" icon="pi pi-pencil" severity="info" (onClick)="edit()" />
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="page-card">載入中…</div>
+} @else if (courseGroup(); as cg) {
+  <div class="page-card">
+    <h2 class="section-title">課程群組資料</h2>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="label">主代碼</span>
+        <span class="value">{{ cg.pkid }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="label">群組名稱</span>
+        <span class="value">{{ cg.description }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <h2 class="section-title">相關資料</h2>
+    <div class="link-actions">
+      <p-button label="查看課程" icon="pi pi-book" severity="secondary" [outlined]="true" (onClick)="viewCourses()" />
+      <p-button label="查看廠商課程群組" icon="pi pi-sitemap" severity="secondary" [outlined]="true" (onClick)="viewPartnerCourseGroups()" />
+    </div>
+  </div>
+}
