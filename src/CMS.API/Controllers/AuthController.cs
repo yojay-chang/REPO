@@ -43,14 +43,20 @@ public class AuthController : ControllerBase
         if (credential.PasswordHash != PasswordHasher.Sha256(request.Password))
             return invalid;
 
+        // Still on the system default password (a first login, or an Admin just reset the account) →
+        // issue a restricted token: it authenticates, but PasswordChangeRequiredMiddleware refuses
+        // everything except the change-password flow until a new password is set.
+        var mustChangePassword = credential.PasswordHash == await _repository.GetDefaultPasswordHashAsync();
+
         var signingKey = await _repository.GetSigningKeyAsync();
-        var accessToken = JwtTokenGenerator.Generate(credential, signingKey);
+        var accessToken = JwtTokenGenerator.Generate(credential, signingKey, mustChangePassword);
 
         return Ok(new LoginResponse
         {
             UserId = credential.UserId,
             UserName = credential.UserName,
-            AccessToken = accessToken
+            AccessToken = accessToken,
+            MustChangePassword = mustChangePassword
         });
     }
 
@@ -80,8 +86,11 @@ public class AuthController : ControllerBase
     /// Change the signed-in user's own password. The account is taken from the JWT (<c>userId</c> claim),
     /// never from the body. The flow: (1) the current password must match the stored hash; (2) the new
     /// password must satisfy <see cref="PasswordPolicy"/>; (3) the new password and its confirmation must
-    /// match. On success the stored <c>PasswordHash</c> is set to SHA-256(new) and <c>PasswordUpdatedTime</c>
-    /// is stamped. No password hash is ever accepted from or returned to the client.
+    /// match, and must not be the system default (which would leave the account still "must change").
+    /// On success the stored <c>PasswordHash</c> is set to SHA-256(new), <c>PasswordUpdatedTime</c> is
+    /// stamped, and a <b>fresh token without</b> <see cref="JwtTokenGenerator.MustChangePasswordClaim"/>
+    /// is returned — a user forced here by that claim would otherwise stay locked out with their old
+    /// token. No password hash is ever accepted from or returned to the client.
     /// </summary>
     [Authorize] // Overrides the class-level [AllowAnonymous]: a valid token is required.
     [HttpPost("change-password")]
@@ -115,10 +124,22 @@ public class AuthController : ControllerBase
         if (request.NewPassword != request.ConfirmNewPassword)
             return BadRequest(new { message = "新密碼與確認密碼不一致。New password and confirmation do not match." });
 
-        // 4. Persist — store only the hash; stamp the update time (handled by the repository).
-        await _repository.UpdatePasswordAsync(userId, PasswordHasher.Sha256(request.NewPassword));
+        var newPasswordHash = PasswordHasher.Sha256(request.NewPassword);
 
-        return Ok(new { message = "密碼已更新。Password changed." });
+        // 4. The new password must not be the system default — that is exactly the state the forced
+        //    change exists to leave, and accepting it would bounce the user straight back here.
+        if (newPasswordHash == await _repository.GetDefaultPasswordHashAsync())
+            return BadRequest(new { message = "新密碼不可與系統預設密碼相同。The new password must not be the system default." });
+
+        // 5. Persist — store only the hash; stamp the update time (handled by the repository).
+        await _repository.UpdatePasswordAsync(userId, newPasswordHash);
+
+        // 6. Mint a fresh token. The caller's current token may carry MustChangePasswordClaim, which the
+        //    middleware keeps enforcing until the token is replaced — so hand back one without it.
+        var signingKey = await _repository.GetSigningKeyAsync();
+        var accessToken = JwtTokenGenerator.Generate(credential, signingKey);
+
+        return Ok(new { message = "密碼已更新。Password changed.", accessToken });
     }
 
     /// <summary>

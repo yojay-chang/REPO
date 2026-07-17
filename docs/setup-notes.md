@@ -60,6 +60,23 @@ Mirror the AppRole feature as the template.
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-16** — Added **forced first-login password change**. Trigger: at login the backend compares the
+  stored `PasswordHash` to `SHA256(SysConfig['appConfig'].defaultPassword)` (new
+  `IAuthRepository.GetDefaultPasswordHashAsync`) — so it catches both a never-used account **and** one an
+  Admin just reset. A match still issues a token, but a **restricted** one carrying
+  `JwtTokenGenerator.MustChangePasswordClaim` (`mustChangePassword: "true"`), and `LoginResponse` gains
+  `MustChangePassword`. Enforcement is **server-side**: `Middleware/PasswordChangeRequiredMiddleware`
+  (registered **after** `UseAuthentication`/`UseAuthorization` so `context.User` is populated) refuses any
+  `/api` request from such a token except `login` / `change-password` / `profile` with **403**
+  `{ message, code: "password_change_required" }` — a direct API caller cannot skip the requirement.
+  `change-password` now also rejects reusing the system default (else the user loops) and returns a **fresh
+  token without the claim**, which is what releases the app. Frontend: `AuthService.mustChangePassword`
+  (decoded from the token claim, not the login flag) + `changePassword` stores the replacement token;
+  `authGuard` pins such a user to the new **`/change-password`** page (`features/change-password`, rendered
+  outside the nav shell — `App.showShell()`) and keeps everyone else off it; `auth.interceptor` routes the
+  403 code there without clearing the session. Tests: `ForcedPasswordChangeTests` (+ default-password user
+  `dana` in `FakeAuthRepository`), `change-password.spec`, guard + interceptor specs. Detail →
+  [auth.md](auth.md).
 - **2026-07-16** — Compacted `CLAUDE.md` again to shrink always-loaded context: collapsed each
   Cross-Cutting convention (row audit, exceptions, print/PDF) to one rule-line + a `→ doc § section`
   pointer, and **moved the "Reference features — copy the closest shape" catalog out of CLAUDE.md into

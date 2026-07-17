@@ -57,6 +57,14 @@ public class AuthRepository : IAuthRepository
         return prop.GetString()!;
     }
 
+    public async Task<string> GetDefaultPasswordHashAsync()
+    {
+        using var db = _connectionFactory.CreateConnection();
+
+        // Hash here so the plaintext default never leaves this repository.
+        return PasswordHasher.Sha256(await GetDefaultPasswordAsync(db));
+    }
+
     public async Task UpdateUserNameAsync(string userId, string userName)
     {
         using var db = _connectionFactory.CreateConnection();

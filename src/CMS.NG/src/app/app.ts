@@ -36,6 +36,15 @@ export class App {
 
   protected readonly collapsed = signal(false);
 
+  /**
+   * The nav shell renders only for a fully signed-in user. A user still on the default password is held
+   * on the forced change-password page, which stands alone like the login page — showing the nav around
+   * it would offer links the backend refuses anyway.
+   */
+  protected readonly showShell = computed(
+    () => this.auth.isAuthenticated() && !this.auth.mustChangePassword(),
+  );
+
   private readonly groups = signal<NavGroup[]>([
     {
       icon: 'pi pi-home',
