@@ -60,6 +60,13 @@ Mirror the AppRole feature as the template.
 
 Newest first. Record notable convention or structural changes here.
 
+- **2026-07-17** — Swagger UI gained an **Authorize** button. `/swagger` previously offered no way to feed
+  an access token, so no endpoint could be tried from the UI — every one is guarded by the global
+  `FallbackPolicy`. Cause: `AddSwaggerGen` only registered the doc title/version, and Swashbuckle builds the
+  Authorize button purely from `components.securitySchemes` — it infers nothing from `AddJwtBearer` or the
+  authorization policy. Fix (`src/CMS.API/Program.cs`): `AddSecurityDefinition("Bearer", …)` declaring an
+  `Http`/`bearer`/`JWT` scheme (so the raw `accessToken` is pasted as-is and Swagger adds the `Bearer `
+  prefix) + `AddSecurityRequirement` applying it to every operation. → [auth.md](auth.md).
 - **2026-07-16** — Added **forced first-login password change**. Trigger: at login the backend compares the
   stored `PasswordHash` to `SHA256(SysConfig['appConfig'].defaultPassword)` (new
   `IAuthRepository.GetDefaultPasswordHashAsync`) — so it catches both a never-used account **and** one an

@@ -25,7 +25,8 @@ Non-optional. The **rule** is here; the **how** + rationale is in the linked doc
 
 ## Auth (JWT)
 
-Login + JWT bearer; signing key `symmetricSecurityKey` (≥32 bytes) in `SysConfig['appConfig']`, read at runtime. Global `FallbackPolicy` guards every controller; `AuthController` is `[AllowAnonymous]`. `/api/Auth`: `login`, `profile`, `change-password` (self), `reset-password` (Admin-only). Passwords SHA-256; no hash on the wire. Frontend stores `{userId,userName,accessToken}` in session storage, decodes roles/`isAdmin`, guards routes, hides **系統管理 Admin** nav unless admin. **Forced first-login password change**: a stored hash equal to `SHA256(appConfig.defaultPassword)` — a new or Admin-reset account — yields a token carrying the `mustChangePassword` claim; `PasswordChangeRequiredMiddleware` 403s (`code: "password_change_required"`) every `/api` path except login/change-password/profile until `change-password` returns a fresh token. → docs/auth.md.
+Login + JWT bearer; signing key `symmetricSecurityKey` (≥32 bytes) in `SysConfig['appConfig']`, read at runtime. Global `FallbackPolicy` guards every controller; `AuthController` is `[AllowAnonymous]`. Swagger declares a
+`Bearer` security scheme so `/swagger` has an **Authorize** button (paste the raw `accessToken`). `/api/Auth`: `login`, `profile`, `change-password` (self), `reset-password` (Admin-only). Passwords SHA-256; no hash on the wire. Frontend stores `{userId,userName,accessToken}` in session storage, decodes roles/`isAdmin`, guards routes, hides **系統管理 Admin** nav unless admin. **Forced first-login password change**: a stored hash equal to `SHA256(appConfig.defaultPassword)` — a new or Admin-reset account — yields a token carrying the `mustChangePassword` claim; `PasswordChangeRequiredMiddleware` 403s (`code: "password_change_required"`) every `/api` path except login/change-password/profile until `change-password` returns a fresh token. → docs/auth.md.
 
 ## gstack
 

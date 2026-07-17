@@ -40,6 +40,15 @@ that JSON **must** contain a `symmetricSecurityKey` ≥ 32 bytes (256 bits) or H
   `IAuthRepository` per validation; global `FallbackPolicy = RequireAuthenticatedUser()` protects
   **every** controller; `AuthController` opts out via `[AllowAnonymous]`. `UseAuthentication()` before
   `UseAuthorization()`.
+- `Program.cs` — **Swagger Authorize button**: `AddSwaggerGen` registers `AddSecurityDefinition("Bearer", …)`
+  (`SecuritySchemeType.Http`, `Scheme = "bearer"`, `BearerFormat = "JWT"`) + `AddSecurityRequirement` applying
+  it to every operation. Both are required and neither is inferred: Swashbuckle renders the **Authorize**
+  button *only* from the OpenAPI document's `components.securitySchemes` — it reads nothing from `AddJwtBearer`
+  or the `FallbackPolicy`, so without a definition the button is absent even though every endpoint needs a
+  token. `Http`/`bearer` (not the older `ApiKey` shape) means the raw `accessToken` from `login` is pasted
+  **as-is** and Swagger prepends `Bearer ` itself. The requirement is what puts the padlock on each operation
+  and attaches the token to try-it-out calls. Verify with
+  `GET /swagger/v1/swagger.json` → `components.securitySchemes.Bearer`.
 ### Forced first-login password change
 
 A user who has never signed in — or whose account an Admin just reset — is still on the system default
