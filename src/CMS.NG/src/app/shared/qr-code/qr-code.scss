@@ -27,3 +27,17 @@
   color: var(--p-text-muted-color);
   font-size: 0.9rem;
 }
+
+/* On paper the QR image is the payoff (scan → live page); the download button is
+ * screen-only chrome, so drop it and the tile frame when printing. */
+@media print {
+  .qr-tile {
+    border: none;
+    padding: 0;
+    background: transparent;
+  }
+
+  .qr-tile p-button {
+    display: none !important;
+  }
+}

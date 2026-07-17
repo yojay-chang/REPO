@@ -94,6 +94,25 @@ describe('CourseDetail', () => {
     expect(title?.textContent?.trim()).toBe('AZ-900');
   });
 
+  it('print() opens the browser print dialog', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    const printSpy = spyOn(window, 'print');
+
+    fixture.componentInstance.print();
+    expect(printSpy).toHaveBeenCalled();
+  });
+
+  it('renders a 列印 / 存為 PDF button once the course loads', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+
+    const labels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('p-button'),
+    ).map((b) => b.getAttribute('label'));
+    expect(labels).toContain('列印 / 存為 PDF');
+  });
+
   it('viewPartner navigates to the partner detail page', () => {
     const fixture = setup();
     fixture.detectChanges();
