@@ -31,3 +31,6 @@ Thumbs.db
 *.local.json
 appsettings.*.local.json
 .gstack/
+# ---- Claude Code ----
+.claude/worktrees/
+
